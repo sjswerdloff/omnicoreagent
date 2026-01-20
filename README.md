@@ -131,20 +131,21 @@ print(result["response"])
 [Context Engineering](#3--context-engineering-system) •
 [Event System](#4--event-system-plug--play) •
 [MCP Client](#5--built-in-mcp-client) •
-[Local Tools](#6-️-local-tools-system) •
-[Agent Skills](#7--agent-skills-system-packaged-capabilities) •
-[Memory Tool Backend](#8--workspace-memory-file-based-persistence)
+[Deep Agent](#6--deep-agent-autonomous-rpi-workflow) •
+[Local Tools](#7-️-local-tools-system) •
+[Agent Skills](#8--agent-skills-system-packaged-capabilities) •
+[Memory Tool Backend](#9--workspace-memory-file-based-persistence)
 
 **Multi-Agent**:
-[Sub-Agents](#9--sub-agents-system) •
-[Background Agents](#10--background-agents) •
-[Workflows](#11--workflow-agents)
+[Sub-Agents](#10--sub-agents-system) •
+[Background Agents](#11--background-agents) •
+[Workflows](#12--workflow-agents)
 
 **Production**:
-[BM25 Tool Retrieval](#12--advanced-tool-use-bm25-retrieval) •
-[Observability](#13--production-observability--metrics) •
-[Guardrails](#14-️-prompt-injection-guardrails) •
-[Model Support](#15--universal-model-support)
+[BM25 Tool Retrieval](#13--advanced-tool-use-bm25-retrieval) •
+[Observability](#14--production-observability--metrics) •
+[Guardrails](#15-️-prompt-injection-guardrails) •
+[Model Support](#16--universal-model-support)
 
 **Reference**: [Examples](#-examples--cookbook) • [Configuration](#️-configuration) • [Testing](#-testing--development) • [Contributing](#-contributing)
 
@@ -776,7 +777,86 @@ result = await agent.run("List all Python files and get latest commits")
 
 ---
 
-### 6. 🛠️ Local Tools System
+### 6. 🧠 DeepAgent (Multi-Agent Orchestration)
+
+**DeepAgent** = OmniCoreAgent + Multi-Agent Orchestration
+
+DeepAgent automatically breaks down complex tasks and delegates them to specialized subagents running in parallel. The lead agent coordinates the work and synthesizes findings from memory.
+
+#### How It Works
+
+For complex tasks, DeepAgent can spawn parallel subagents:
+1. Analyzes task complexity
+2. Creates memory plan (`/memories/task_name/`)
+3. Spawns specialized subagents in parallel
+4. Subagents write findings to memory (not context)
+5. Lead agent reads from memory to synthesize
+
+**Architecture Flow**:
+```
+User Query → Lead Agent → Spawn Subagents (parallel)
+                ↓
+            [Subagent A] → Write to /memories/subtask_a/
+            [Subagent B] → Write to /memories/subtask_b/
+            [Subagent C] → Write to /memories/subtask_c/
+                ↓
+Lead Agent reads memory → Synthesize → Final Answer
+```
+
+#### Quick Start
+
+```python
+from omnicoreagent import DeepAgent
+
+# Create a DeepAgent for any domain
+agent = DeepAgent(
+    name="research_coordinator",
+    system_instruction="You are a tech research coordinator.",
+    model_config={"provider": "openai", "model": "gpt-4o"},
+)
+
+await agent.initialize()  # Registers orchestration tools
+
+# Run complex query - automatically spawns subagents
+result = await agent.run("""
+Research the benefits of Rust vs Go for cloud-native applications.
+Consider performance, developer experience, and ecosystem maturity.
+""")
+# DeepAgent spawns 3 parallel subagents:
+# - Performance researcher
+# - DevEx analyst  
+# - Ecosystem analyst
+
+await agent.cleanup()
+```
+
+#### DeepAgent vs OmniCoreAgent
+
+| Feature | OmniCoreAgent | DeepAgent |
+|---------|---------------|-----------|
+| **Domain** | User-defined | User-defined (same) |
+| **Tools** | User-provided | User-provided + orchestration |
+| **Memory Backend** | Optional | **Always `"local"`** (enforced) |
+| **Orchestration** | No | Automatic subagent spawning |
+| **Best For** | Single-agent tasks | Complex multi-step analysis |
+
+#### Built-in Orchestration Tools
+
+DeepAgent provides two specialized tools to the lead agent:
+
+- **`spawn_subagent`** - Spawn a single focused subagent
+- **`spawn_parallel_subagents`** - Spawn multiple subagents in parallel
+
+Subagents inherit:
+- Parent's model config
+- Parent's tools (MCP + local)
+- Parent's agent config (context management, tool offload, etc.)
+
+> 📚 **Learn More**: See [DeepAgent Documentation](./docs/deep-agent.md) for architecture diagrams, use cases, and best practices.
+
+> 💡 **When to Use**: Use DeepAgent when your tasks may benefit from multi-agent orchestration (parallel research, divide-and-conquer analysis, multi-domain expertise).
+
+### 7. 🛠️ Local Tools System
 
 Register any Python function as an AI tool:
 
@@ -806,7 +886,7 @@ agent = OmniCoreAgent(
 
 ---
 
-### 7. 🧩 Agent Skills System (Packaged Capabilities)
+### 8. 🧩 Agent Skills System (Packaged Capabilities)
 
 OmniCoreAgent supports the **Agent Skills** specification — self-contained capability packages that provide specialized knowledge, executable scripts, and documentation.
 
@@ -838,7 +918,7 @@ agent_config = {
 
 ---
 
-### 8. 💾 Workspace Memory (File-Based Persistence)
+### 9. 💾 Workspace Memory (File-Based Persistence)
 
 A **file-based persistent storage system** that gives your agent a local workspace to save and manage files during long-running tasks. Files are stored in a `./memories/` directory with safe concurrent access and path traversal protection.
 
@@ -876,7 +956,7 @@ agent_config = {
 
 ---
 
-### 9. 👥 Sub-Agents System
+### 10. 👥 Sub-Agents System
 
 Delegate tasks to specialized child agents:
 
@@ -895,7 +975,7 @@ parent_agent = OmniCoreAgent(
 
 ---
 
-### 10. 🚁 Background Agents
+### 11. 🕰️ Background Agents
     
 Autonomous agents that run on varying schedules (Interval or Cron) or process tasks from a persistent queue.
     
@@ -1005,7 +1085,7 @@ _Events & Streaming_
 
 ---
 
-### 11. 🔄 Workflow Agents
+### 12. 🔄 Workflow Agents
 
 Orchestrate multiple agents for complex tasks:
 
@@ -1038,7 +1118,7 @@ result = await router.run(task="Find and summarize AI research")
 
 ---
 
-### 12. 🧠 Advanced Tool Use (BM25 Retrieval)
+### 13. 🧠 Advanced Tool Use (BM25 Retrieval)
 
 Automatically discover relevant tools at runtime using BM25 lexical search:
 
@@ -1060,7 +1140,7 @@ agent_config = {
 
 ---
 
-### 13. 📊 Production Observability & Metrics
+### 14. 📊 Production Observability & Metrics
 
 #### 📈 Real-time Usage Metrics
 OmniCoreAgent tracks every token, request, and millisecond. Each `run()` returns a `metric` object, and you can get cumulative stats anytime.
@@ -1101,7 +1181,7 @@ Agent Execution Trace:
 ---
 
 
-### 14. 🛡️ Prompt Injection Guardrails
+### 15. 🛡️ Prompt Injection Guardrails
 
 Protect your agents against malicious inputs, jailbreaks, and instruction overrides before they reach the LLM.
 
@@ -1147,7 +1227,7 @@ agent = OmniCoreAgent(..., agent_config=agent_config)
 
 ---
 
-### 15. 🌐 Universal Model Support
+### 16. 🌐 Universal Model Support
 
 
 Model-agnostic through LiteLLM — use any provider:
