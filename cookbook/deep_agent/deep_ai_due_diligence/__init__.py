@@ -1,5 +1,5 @@
 """
-Vula Due Diligence System - DeepAgent-Powered SME Evaluation Platform
+OmniRex Due Diligence System - DeepAgent-Powered SME Evaluation Platform
 
 Enterprise-grade due diligence system for African SME funding evaluation.
 Uses DeepAgent RPI+ orchestration for comprehensive, multi-domain analysis.

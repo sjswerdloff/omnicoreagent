@@ -1,4 +1,4 @@
-# Vula Due Diligence System - DeepAgent Edition
+# OmniRex Due Diligence System - DeepAgent Edition
 
 An AI-powered due diligence system specifically designed for African SME evaluation. Powered by OmniCoreAgent DeepAgent technology.
 
@@ -42,7 +42,7 @@ Run the evaluation directly from your terminal. No TUI required.
 
 ```bash
 # Navigate to the cookbook directory
-cd cookbook/deep_agent/vula_due_diligence
+cd cookbook/deep_agent/deep_ai_due_diligence
 
 # Run the runner directly
 python engine/deep_agent_runner.py "Company Name"

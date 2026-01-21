@@ -1,5 +1,5 @@
 """
-DeepAgent Runner for Vula Due Diligence System
+DeepAgent Runner for OmniRex Due Diligence System
 """
 
 import asyncio
@@ -10,13 +10,13 @@ from datetime import datetime
 from typing import Any, Dict, Optional, Callable
 import uuid
 from omnicoreagent import DeepAgent
-from vula_tools import create_vula_tools
+from local_tools import create_omnirex_tools
 
 logger = logging.getLogger(__name__)
 
 
 
-class VulaDeepAgentRunner:
+class OmniRexDeepAgentRunner:
     """
     DeepAgent runner for SME due diligence evaluation.
     """
@@ -36,31 +36,22 @@ class VulaDeepAgentRunner:
         self.debug = debug
         self.agent = None
 
-        # Map LLM_API_KEY to provider specific key if set
-        llm_key = os.getenv("LLM_API_KEY")
-        if llm_key:
-            if provider == "openai":
-                os.environ["OPENAI_API_KEY"] = llm_key
-            elif provider == "google" or provider == "gemini":
-                os.environ["GOOGLE_API_KEY"] = llm_key
-            elif provider == "anthropic":
-                os.environ["ANTHROPIC_API_KEY"] = llm_key
         
     def _build_system_instruction(self) -> str:
-        return """You are a **World-Class Investment Analyst** for **VulaOS** - AI-powered SME funding infrastructure for Africa.
+        return """You are a **World-Class Investment Analyst** for **OmniRexFlora Labs** - AI-powered SME funding infrastructure for Africa.
 
 ## YOUR MISSION
 Evaluate African SMEs for funding eligibility across grants, debt, and equity—reducing evaluation time by 60-90% while maintaining institutional-grade rigor.
 
-## VULA CONTEXT
-- Vula helps African SMEs find their best funding options (grants, debt, equity)
-- VulaOS reduces application evaluation times by 60-90% for investors and grantmakers
+## OMNIREX CONTEXT
+- OmniRexFlora helps African SMEs find their best funding options (grants, debt, equity)
+- OmniRexFlora reduces application evaluation times by 60-90% for investors and grantmakers
 - Our mission is to 10x investment into African enterprises
 - The continent's largest youth workforce represents a massive opportunity
 
 ## PARALLEL SUBAGENT STRATEGY
 
-**CRITICAL**: For comprehensive due diligence, you MUST leverage parallel subagent spawning to investigate multiple domains SIMULTANEOUSLY. This is what makes VulaOS powerful.
+**CRITICAL**: For comprehensive due diligence, you MUST leverage parallel subagent spawning to investigate multiple domains SIMULTANEOUSLY. This is what makes OmniRexFlora powerful.
 
 ### Recommended Parallel Investigation Structure:
 
@@ -174,14 +165,14 @@ Each subagent should:
         
         # Initialize DeepAgent with CORRECT API
         self.agent = DeepAgent(
-            name="VulaDueDiligence",
+            name="OmniRexDueDiligence",
             system_instruction=self._build_system_instruction(),
             model_config={
                 "provider": self.provider,
                 "model": self.model,
             },
             mcp_tools=mcp_tools if mcp_tools else None,
-            local_tools=create_vula_tools(),
+            local_tools=create_omnirex_tools(),
             agent_config={
                 "max_steps": self.max_steps,
             },
@@ -189,7 +180,7 @@ Each subagent should:
         )
         
         await self.agent.initialize()
-        logger.info(f"VulaDeepAgent initialized: model={self.model}, tavily={bool(self.tavily_key)}")
+        logger.info(f"OmniRexDeepAgent initialized: model={self.model}, tavily={bool(self.tavily_key)}")
        
 
         
@@ -303,7 +294,7 @@ Generate all required outputs (dashboard, chart, report, memo) at the end."""
 
 async def quick_evaluate(company_name: str, tavily_key: str = None) -> Dict[str, Any]:
     """Quick evaluation helper."""
-    runner = VulaDeepAgentRunner(tavily_key=tavily_key, debug=True)
+    runner = OmniRexDeepAgentRunner(tavily_key=tavily_key, debug=True)
     try:
         await runner.initialize()
         return await runner.evaluate_company(company_name)
@@ -318,7 +309,7 @@ if __name__ == "__main__":
     
     company = " ".join(sys.argv[1:])
     print(f"\n{'='*60}")
-    print(f"VULA DUE DILIGENCE: {company}")
+    print(f"OMNIREXFLORA DUE DILIGENCE: {company}")
     print(f"{'='*60}\n")
     
     result = asyncio.run(quick_evaluate(company))
