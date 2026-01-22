@@ -15,12 +15,11 @@ from local_tools import create_omnirex_tools
 logger = logging.getLogger(__name__)
 
 
-
 class OmniRexDeepAgentRunner:
     """
     DeepAgent runner for SME due diligence evaluation.
     """
-    
+
     def __init__(
         self,
         model: str = "gpt-4.1",
@@ -36,7 +35,6 @@ class OmniRexDeepAgentRunner:
         self.debug = debug
         self.agent = None
 
-        
     def _build_system_instruction(self) -> str:
         return """You are a **World-Class Investment Analyst** for **OmniRexFlora Labs** - AI-powered SME funding infrastructure for Africa.
 
@@ -147,22 +145,23 @@ Each subagent should:
 
     async def initialize(self):
         """Initialize DeepAgent."""
-        
+
         # MCP tools for Tavily
         mcp_tools = []
         if self.tavily_key:
-            mcp_tools.append({
-                "name": "tavily-remote-mcp",
-                "transport_type": "stdio",
-                "command": "npx",
-                "args": [
-                    "-y",
-                    "mcp-remote",
-                    f"https://mcp.tavily.com/mcp/?tavilyApiKey={self.tavily_key}",
-                ],
-            })
-        
-        
+            mcp_tools.append(
+                {
+                    "name": "tavily-remote-mcp",
+                    "transport_type": "stdio",
+                    "command": "npx",
+                    "args": [
+                        "-y",
+                        "mcp-remote",
+                        f"https://mcp.tavily.com/mcp/?tavilyApiKey={self.tavily_key}",
+                    ],
+                }
+            )
+
         # Initialize DeepAgent with CORRECT API
         self.agent = DeepAgent(
             name="OmniRexDueDiligence",
@@ -178,12 +177,12 @@ Each subagent should:
             },
             debug=self.debug,
         )
-        
-        await self.agent.initialize()
-        logger.info(f"OmniRexDeepAgent initialized: model={self.model}, tavily={bool(self.tavily_key)}")
-       
 
-        
+        await self.agent.initialize()
+        logger.info(
+            f"OmniRexDeepAgent initialized: model={self.model}, tavily={bool(self.tavily_key)}"
+        )
+
     async def _monitor_events(
         self,
         session_id: str,
@@ -191,8 +190,9 @@ Each subagent should:
         on_tool_end: Optional[Callable[[dict], None]] = None,
     ):
         """Monitor event stream and fire callbacks."""
-        if not self.agent: return
-        
+        if not self.agent:
+            return
+
         try:
             # Stream events from the router
             async for event in self.agent.event_router.stream(session_id=session_id):
@@ -200,18 +200,15 @@ Each subagent should:
                 if event.type == "agent_thought" and on_token:
                     msg = getattr(event.payload, "message", str(event.payload))
                     on_token(msg + "\n")
-                    
+
                 # 2. Risk Radar (Tool Results)
                 if event.type == "tool_call_result" and on_tool_end:
                     tool_name = getattr(event.payload, "tool_name", "")
                     result_val = getattr(event.payload, "result", "")
-                    
-                    data = {
-                        "tool_name": tool_name,
-                        "output": result_val
-                    }
+
+                    data = {"tool_name": tool_name, "output": result_val}
                     on_tool_end(data)
-                    
+
         except asyncio.CancelledError:
             pass
         except Exception as e:
@@ -228,33 +225,34 @@ Each subagent should:
         """Evaluate a single company."""
         if not self.agent:
             await self.initialize()
-            
+
         task = self._build_task(company_name, company_profile)
         start_time = datetime.now()
         session_id = str(uuid.uuid4())
-        
+
         # Start event monitoring in background
         monitor_task = asyncio.create_task(
             self._monitor_events(session_id, on_token, on_tool_end)
         )
-        
+
         try:
             # Run the evaluation
             result = await self.agent.run(task, session_id=session_id)
             elapsed = (datetime.now() - start_time).total_seconds()
-            
+
             return {
                 "status": "success",
                 "company_name": company_name,
                 "response": result.get("response", ""),
                 "elapsed_seconds": elapsed,
-                "confidence_overall": 85, # improved confidence
-                "recommendation": "Calculated", # placeholder
-                "memory_path": f"outputs/memo_{company_name.replace(' ', '_')}.md"
+                "confidence_overall": 85,  # improved confidence
+                "recommendation": "Calculated",  # placeholder
+                "memory_path": f"outputs/memo_{company_name.replace(' ', '_')}.md",
             }
         except Exception as e:
             logging.error(f"Evaluation failed: {e}")
             import traceback
+
             traceback.print_exc()
             return {
                 "status": "error",
@@ -268,11 +266,11 @@ Each subagent should:
                 await monitor_task
             except asyncio.CancelledError:
                 pass
-    
+
     def _build_task(self, company_name: str, profile: Optional[Dict] = None) -> str:
         """
         Build the evaluation task.
-        
+
         NOTE: The task is minimal to ensure the agent performs legitimate research.
         We only provide the company name and the African context.
         """
@@ -306,17 +304,17 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python deep_agent_runner.py <company_name>")
         sys.exit(1)
-    
+
     company = " ".join(sys.argv[1:])
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"OMNIREXFLORA DUE DILIGENCE: {company}")
-    print(f"{'='*60}\n")
-    
+    print(f"{'=' * 60}\n")
+
     result = asyncio.run(quick_evaluate(company))
-    
-    print(f"\n{'='*60}")
+
+    print(f"\n{'=' * 60}")
     print(f"Status: {result.get('status')}")
     print(f"Time: {result.get('elapsed_seconds', 0):.1f}s")
-    if result.get('response'):
+    if result.get("response"):
         print(f"\n{result['response'][:3000]}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")

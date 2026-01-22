@@ -237,12 +237,14 @@ class DevOpsCopilotRunner:
         try:
             result = await self.agent.run(query=query, session_id=session_id)
             response = result.get("response", "")
-            
+
             # Log agent metrics
             agent_metrics = await self.agent.get_metrics()
-            log.info(f"Agent metrics: {agent_metrics.get('total_requests', 0)} requests, "
-                     f"{agent_metrics.get('total_tokens', 0)} tokens")
-            
+            log.info(
+                f"Agent metrics: {agent_metrics.get('total_requests', 0)} requests, "
+                f"{agent_metrics.get('total_tokens', 0)} tokens"
+            )
+
             audit.query(query, session_id, len(response))
             return {
                 "response": response,

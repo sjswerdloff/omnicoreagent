@@ -80,7 +80,9 @@ class OmniCoreAgent:
         )
         self.event_router = event_router or EventRouter(event_store_type="in_memory")
         self.config_transformer = config_transformer
-        self.prompt_builder = prompt_builder or OmniCoreAgentPromptBuilder(SYSTEM_SUFFIX)
+        self.prompt_builder = prompt_builder or OmniCoreAgentPromptBuilder(
+            SYSTEM_SUFFIX
+        )
         self.agent = None
         self.mcp_client = None
         self.llm_connection = None
@@ -130,12 +132,11 @@ class OmniCoreAgent:
                 "total_tokens_limit": 0,
                 "enable_advanced_tool_use": False,
                 "enable_agent_skills": False,
-                "memory_config": {"mode": "sliding_window",
-        "value": 10000,
-        "summary": {
-            "enabled": False,
-            "retention_policy": "keep"
-        }},
+                "memory_config": {
+                    "mode": "sliding_window",
+                    "value": 10000,
+                    "summary": {"enabled": False, "retention_policy": "keep"},
+                },
                 "context_management": {
                     "enabled": False,
                     "mode": "token_budget",
@@ -192,7 +193,9 @@ class OmniCoreAgent:
                 mode=agent_settings.memory_config["mode"],
                 value=agent_settings.memory_config["value"],
                 summary_config=summary_config,
-                summarize_fn=self._summarize_history if summary_config and summary_config.get("enabled") else None,
+                summarize_fn=self._summarize_history
+                if summary_config and summary_config.get("enabled")
+                else None,
             )
 
         self.agent = ReactAgent(config=agent_settings)
@@ -238,7 +241,7 @@ class OmniCoreAgent:
             {
                 "role": "user",
                 "content": f"Here is the conversation history to summarize:\n\n{history_text}",
-            }
+            },
         ]
 
         try:
@@ -257,7 +260,9 @@ class OmniCoreAgent:
                 elif isinstance(response, str):
                     pass
                 else:
-                    logger.error(f"No valid response content found in LLM response: {type(response)}")
+                    logger.error(
+                        f"No valid response content found in LLM response: {type(response)}"
+                    )
                     return ""
                 return response
             return ""

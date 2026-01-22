@@ -279,7 +279,7 @@ class TestBackgroundOmniCoreAgent:
         assert result == {"response": "success"}
         assert agent.run_count == 1
         assert agent.run.call_count == 2
-        
+
     @pytest.mark.asyncio
     async def test_task_timeout(self, mock_omni_agent, task_registry):
         config = {
@@ -309,7 +309,7 @@ class TestBackgroundOmniCoreAgent:
                     "session_id": "test_session",
                 }
             )
-    
+
     @pytest.mark.asyncio
     async def test_queue_full(self, mock_omni_agent, task_registry):
         config = {
@@ -318,14 +318,14 @@ class TestBackgroundOmniCoreAgent:
             "model_config": {"provider": "openai", "model": "gpt-4"},
         }
         agent = BackgroundOmniCoreAgent(config, task_registry)
-        
+
         # Fill queue
         await agent.submit_task({"query": "task 1"})
-        
+
         # Next one should fail if we don't consume it
         with pytest.raises(asyncio.TimeoutError):
-             # Force small queue_timeout for test speed
-             await agent.submit_task({"query": "task 2", "queue_timeout": 0.1})
+            # Force small queue_timeout for test speed
+            await agent.submit_task({"query": "task 2", "queue_timeout": 0.1})
 
     @pytest.mark.asyncio
     async def test_timezone_aware_execution(self, mock_omni_agent, task_registry):
@@ -334,13 +334,13 @@ class TestBackgroundOmniCoreAgent:
             "model_config": {"provider": "openai", "model": "gpt-4"},
         }
         task_registry.register("test_agent", {"query": "timezone task"})
-        
+
         mock_event_router = AsyncMock()
         agent = BackgroundOmniCoreAgent(
             config, task_registry, event_router=mock_event_router
         )
         agent.run = AsyncMock(return_value={"response": "success"})
-        
+
         await agent._internal_run_task(
             task_config={
                 "query": "timezone task",
@@ -348,7 +348,7 @@ class TestBackgroundOmniCoreAgent:
                 "session_id": "test_session",
             }
         )
-        
+
         # Check if last_run is timezone aware (has tzinfo)
         assert agent.last_run.tzinfo == timezone.utc
 

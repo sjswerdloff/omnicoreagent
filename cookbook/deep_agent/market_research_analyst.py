@@ -42,19 +42,22 @@ if not tavily_key:
 # MAIN - Real Deep Research with Tavily
 # =============================================================================
 
+
 async def main():
     """Run the Ultra-Advanced Market Research Analyst with Real Internet Search."""
-    
+
     print("=" * 80)
     print("🔬 ULTRA-ADVANCED DEEP RESEARCH ANALYST - RPI+ Workflow")
     print("=" * 80)
     print("\nPowered by:")
-    print("  • DeepAgent RPI+ (Research → Plan → Implement → Verify → Iterate → Synthesize)")
+    print(
+        "  • DeepAgent RPI+ (Research → Plan → Implement → Verify → Iterate → Synthesize)"
+    )
     print("  • Tavily MCP (Real-time internet search)")
     print("  • Meta-cognitive assessment with adaptive workflow")
     print("  • Quality gates & confidence scoring")
     print("=" * 80)
-    
+
     # Configure Tavily MCP for real internet search
     mcp_tools = [
         {
@@ -68,7 +71,7 @@ async def main():
             ],
         }
     ]
-    
+
     agent = DeepAgent(
         name="DeepResearchAnalyst",
         system_instruction="""
@@ -114,17 +117,17 @@ to investigate in parallel, then synthesize their findings with cross-cutting in
         agent_config={
             "max_steps": 100,  # Increased for deep RPI+ with real search
         },
-        debug=True
+        debug=True,
     )
-    
+
     await agent.initialize()
     print(f"\n✅ Agent initialized: {agent.name}")
     print("🔍 MCP Tools connected: Tavily Search Engine\n")
-    
+
     print("=" * 80)
     print("📋 RESEARCH BRIEF")
     print("=" * 80)
-    
+
     # Ultra-complex real-world research task
     result = await agent.run("""
     Conduct a COMPREHENSIVE market entry analysis for launching an "AI-powered DevOps automation platform" 
@@ -176,15 +179,15 @@ to investigate in parallel, then synthesize their findings with cross-cutting in
     CRITICAL: Use REAL internet search. Cite sources. Note data recency.
     This is a complex, multi-domain research task. Use your full RPI+ capabilities.
     """)
-    
+
     print("\n" + "=" * 80)
     print("📊 FINAL RESEARCH REPORT")
     print("=" * 80)
     print(result["response"])
     print("=" * 80)
-    
+
     await agent.cleanup()
-    
+
     print("\n" + "=" * 80)
     print("✅ ULTRA-ADVANCED RPI+ WORKFLOW COMPLETE")
     print("=" * 80)

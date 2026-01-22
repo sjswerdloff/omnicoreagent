@@ -17,7 +17,7 @@ class ReactAgent(BaseReactAgent):
             memory_tool_backend=config.memory_tool_backend,
             enable_agent_skills=config.enable_agent_skills,
             context_management_config=config.context_management,
-            tool_offload_config=getattr(config, 'tool_offload', None),
+            tool_offload_config=getattr(config, "tool_offload", None),
         )
 
     async def _run(

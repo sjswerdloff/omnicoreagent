@@ -3,14 +3,13 @@ DeepAgent Prompt Builder and Orchestration Prompts.
 
 Clean prompt structure:
 1. <system_instruction> - User's domain-specific instruction
-2. <deep_agent_capabilities> - Multi-agent orchestration 
+2. <deep_agent_capabilities> - Multi-agent orchestration
 3. {SYSTEM_SUFFIX} - ReAct pattern, tool usage, etc.
 
 NOTE: task_id is for when SPAWNING subagents, not part of base prompt.
 """
 
 from omnicoreagent.omni_agent.prompts.react_suffix import SYSTEM_SUFFIX
-
 
 
 DEEP_AGENT_ORCHESTRATION_PROMPT = """
@@ -835,29 +834,28 @@ DEEP_AGENT_ORCHESTRATION_PROMPT = """
 """
 
 
-
 class DeepAgentPromptBuilder:
     """
     Builds prompts for DeepAgent with clean structure:
-    
+
     1. <system_instruction> - User's domain instruction (pure)
-    2. <deep_agent_capabilities> - Orchestration extension  
+    2. <deep_agent_capabilities> - Orchestration extension
     3. {SYSTEM_SUFFIX} - ReAct pattern, tools, memory, etc.
-    
+
     NOTE: No task_id in base prompt. Task paths are chosen dynamically
     when the lead agent spawns subagents.
     """
-    
+
     def __init__(self, system_suffix: str = SYSTEM_SUFFIX):
         """
         Initialize the prompt builder.
-        
+
         Args:
             system_suffix: The ReAct suffix (defaults to SYSTEM_SUFFIX)
         """
         self.system_suffix = system_suffix.strip()
         self.orchestration_prompt = DEEP_AGENT_ORCHESTRATION_PROMPT.strip()
-    
+
     def build(
         self,
         *,
@@ -866,21 +864,21 @@ class DeepAgentPromptBuilder:
     ) -> str:
         """
         Build the complete DeepAgent prompt.
-        
+
         Compatible with OmniCoreAgent's prompt_builder interface.
-        
+
         Args:
             system_instruction: Alias for user_instruction (OmniCoreAgent compat)
             user_instruction: User's domain-specific instruction
-            
+
         Returns:
             Complete system prompt with clean structure
         """
         instruction = user_instruction or system_instruction
-        
+
         if not instruction or not instruction.strip():
             raise ValueError("User instruction is required.")
-        
+
         return f"""<system_instruction>
 {instruction.strip()}
 </system_instruction>
@@ -889,7 +887,7 @@ class DeepAgentPromptBuilder:
 
 {self.system_suffix}
 """.strip()
-    
+
     def build_subagent_prompt(
         self,
         *,
@@ -899,14 +897,14 @@ class DeepAgentPromptBuilder:
     ) -> str:
         """
         Build a focused prompt for subagents.
-        
+
         Subagents get a simpler prompt - just their task, no orchestration.
-        
+
         Args:
             role: What this subagent specializes in
             task: Specific task to complete
             output_path: Memory path for writing findings
-            
+
         Returns:
             Subagent system prompt
         """
@@ -944,14 +942,13 @@ When you have completed your investigation:
 """.strip()
 
 
-
 def build_deep_agent_prompt(user_instruction: str) -> str:
     """
     Build complete DeepAgent prompt (convenience function).
-    
+
     Args:
         user_instruction: User's domain instruction
-        
+
     Returns:
         Complete system prompt
     """

@@ -44,4 +44,3 @@ class AbstractMemoryStore(ABC):
     ) -> None:
         """Mark messages as summarized (inactive or delete based on policy)."""
         raise NotImplementedError
-

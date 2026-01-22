@@ -33,7 +33,7 @@ into focused subtasks and delegate them to specialized subagents.
 Research the benefits of serverless computing for AI applications.
 Create one subagent to research cost benefits and another for scalability.
     """
-    
+
     result = await agent.run(query)
     print(f"Response: {result['response']}")
     print(f"Session ID: {result['session_id']}")

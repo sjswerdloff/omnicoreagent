@@ -9,12 +9,14 @@ from typing import Optional
 
 class MessageStatus(str, Enum):
     """Status of a message in the message store."""
+
     ACTIVE = "active"
     INACTIVE = "inactive"
 
 
 class InactiveReason(str, Enum):
     """Reason why a message is inactive."""
+
     SUMMARIZED = "summarized"
     ARCHIVED = "archived"
     DELETED = "deleted"
@@ -22,6 +24,7 @@ class InactiveReason(str, Enum):
 
 class SummaryRetentionPolicy(str, Enum):
     """Policy for handling summarized messages."""
+
     KEEP = "keep"
     DELETE = "delete"
 
@@ -38,12 +41,11 @@ class SummaryConfig(BaseModel):
     """
 
     enabled: bool = Field(
-        default=False,
-        description="Enable summarization when history exceeds limits"
+        default=False, description="Enable summarization when history exceeds limits"
     )
     retention_policy: SummaryRetentionPolicy = Field(
         default=SummaryRetentionPolicy.KEEP,
-        description="What to do with messages after summarization: 'keep' or 'delete'"
+        description="What to do with messages after summarization: 'keep' or 'delete'",
     )
 
     class Config:

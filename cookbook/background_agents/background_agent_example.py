@@ -35,6 +35,7 @@ from omnicoreagent import (
 
 # --- Tools ---
 
+
 async def create_tool_registry() -> ToolRegistry:
     registry = ToolRegistry()
 
@@ -51,31 +52,30 @@ async def create_tool_registry() -> ToolRegistry:
 
     return registry
 
+
 # --- Main Demo ---
+
 
 async def main():
     logger.info("🚀 Starting Background Agent 'Kitchen Sink' Demo")
-    
+
     # 1. Initialize Components
     manager = BackgroundAgentManager()
     tool_registry = await create_tool_registry()
-    
+
     try:
         # 2. Create Agents
-        
+
         # Agent A: High Frequency Monitor (Interval = 2s)
         logger.info("\n--- 1. Creating Interval Agent (Monitor) ---")
         monitor_config = {
             "agent_id": "monitor_agent",
             "model_config": {"provider": "openai", "model": "gpt-4o-mini"},
             "local_tools": tool_registry,
-            "interval": 2, 
-            "queue_size": 10
+            "interval": 2,
+            "queue_size": 10,
         }
-        monitor_task = {
-            "query": "Run system_check(scope='basic')",
-            "interval": 2
-        }
+        monitor_task = {"query": "Run system_check(scope='basic')", "interval": 2}
         # Create agent accepts config with task_config separate or embedded
         # For clarity, we'll embed it here as allowed by manager.create_agent
         monitor_config["task_config"] = monitor_task
@@ -97,15 +97,15 @@ async def main():
             # Warning: Standard cron is minute-resolution. For demo speed we might need interval,
             # but let's try to stick to the 'kitchen sink' promise and use a real cron string.
             # This means it will run at the next minute boundary.
-            "interval": "* * * * *" 
+            "interval": "* * * * *",
         }
         reporter_task = {
             "query": "Generate a daily report.",
             # "interval" in task_config takes precedence
             "interval": "* * * * *",
-            "max_retries": 5,      # Retry up to 5 times on failure
-            "retry_delay": 10,     # Wait 10s between retries
-            "session_id": "daily-report-session" # Persistent session ID
+            "max_retries": 5,  # Retry up to 5 times on failure
+            "retry_delay": 10,  # Wait 10s between retries
+            "session_id": "daily-report-session",  # Persistent session ID
         }
         reporter_config["task_config"] = reporter_task
         await manager.create_agent(reporter_config)
@@ -122,8 +122,8 @@ async def main():
         logger.info("\n--- 4. Manual Task Trigger ---")
         logger.info("Injecting an urgent task into monitor_agent...")
         await manager.run_task_now(
-            "monitor_agent", 
-            {"query": "Run system_check(scope='FULL_SCAN')", "timeout": 5}
+            "monitor_agent",
+            {"query": "Run system_check(scope='FULL_SCAN')", "timeout": 5},
         )
         await asyncio.sleep(2)
 
@@ -131,10 +131,10 @@ async def main():
         logger.info("\n--- 5. Pause & Resume ---")
         logger.info("Pausing monitor_agent...")
         await manager.pause_agent("monitor_agent")
-        
+
         logger.info("Monitor paused. Waiting 3s (should see no monitor logs)...")
         await asyncio.sleep(3)
-        
+
         logger.info("Resuming monitor_agent...")
         await manager.resume_agent("monitor_agent")
         await asyncio.sleep(3)
@@ -142,24 +142,21 @@ async def main():
         # 6. Runtime Configuration Update
         logger.info("\n--- 6. Runtime Config Update ---")
         logger.info("Updating monitor_agent to run FASTER (interval=1s)...")
-        new_task_config = {
-            "query": "Run system_check(scope='turbo')",
-            "interval": 1
-        }
+        new_task_config = {"query": "Run system_check(scope='turbo')", "interval": 1}
         await manager.update_task_config("monitor_agent", new_task_config)
         # We also need to tell manager to re-schedule it if we changed interval in task config
         # The update_task_config only updates registry.
         # To apply config changes to scheduling, we normally use update_agent_config or restart.
         # Let's use the explicit update_agent_config which re-schedules.
         await manager.update_agent_config("monitor_agent", {"interval": 1})
-        
+
         await asyncio.sleep(3)
 
         # 7. Lifecycle Management: Delete
         logger.info("\n--- 7. Delete Agent ---")
         logger.info("Deleting cron_agent...")
         await manager.delete_agent("cron_agent")
-        
+
         status = await manager.get_manager_status()
         logger.info(f"Agents remaining: {status['agents']}")
 
@@ -167,7 +164,9 @@ async def main():
         logger.info("\n--- 8. Status & Metrics ---")
         metrics = await manager.get_all_metrics()
         for agent_id, m in metrics.items():
-            logger.info(f"Agent {agent_id}: Runs={m['run_count']}, Errors={m['error_count']}")
+            logger.info(
+                f"Agent {agent_id}: Runs={m['run_count']}, Errors={m['error_count']}"
+            )
 
         # 9. Shutdown
         logger.info("\n--- 9. Shutdown ---")
@@ -177,6 +176,7 @@ async def main():
     except Exception as e:
         logger.error(f"❌ Demo Failed: {e}")
         await manager.shutdown()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

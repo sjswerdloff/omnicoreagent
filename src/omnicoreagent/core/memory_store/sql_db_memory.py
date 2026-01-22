@@ -163,9 +163,7 @@ class StorageMessage(Base):
         MutableDict.as_mutable(DynamicJSON), default={}
     )
 
-    status: Mapped[str] = mapped_column(
-        String(20), default="active", nullable=False
-    )
+    status: Mapped[str] = mapped_column(String(20), default="active", nullable=False)
     inactive_reason: Mapped[str | None] = mapped_column(
         String(20), nullable=True, default=None
     )
@@ -239,7 +237,9 @@ class DatabaseMessageStore(AbstractMemoryStore):
                 if col_name not in existing_columns:
                     try:
                         conn.execute(
-                            text(f"ALTER TABLE messages ADD COLUMN {col_name} {col_def}")
+                            text(
+                                f"ALTER TABLE messages ADD COLUMN {col_name} {col_def}"
+                            )
                         )
                         conn.commit()
                         logger.debug(f"Added column '{col_name}' to messages table")
@@ -320,7 +320,6 @@ class DatabaseMessageStore(AbstractMemoryStore):
     async def get_messages(
         self, session_id: str = None, agent_name: str | None = None
     ) -> list[dict[str, Any]]:
-        
         def _fetch_messages():
             session = None
             try:
@@ -338,7 +337,7 @@ class DatabaseMessageStore(AbstractMemoryStore):
                     )
 
                 messages = query.order_by(StorageMessage.timestamp.asc()).all()
-                
+
                 return [
                     {
                         "id": m.id,
@@ -371,16 +370,12 @@ class DatabaseMessageStore(AbstractMemoryStore):
         if summarized_ids and summary_msg:
             summary_id = str(uuid.uuid4())
             summary_msg["id"] = summary_id
-            
-            
-            
-            
-            
+
             def _background_persist_summary():
                 session = None
                 try:
                     session = self._get_session(fresh_for_background=True)
-                    
+
                     summary_storage_msg = StorageMessage(
                         id=summary_id,
                         session_id=session_id,
@@ -391,21 +386,23 @@ class DatabaseMessageStore(AbstractMemoryStore):
                         timestamp=utc_now_str(),
                     )
                     session.add(summary_storage_msg)
-                    
+
                     retention = getattr(
                         self.summary_config.retention_policy,
                         "value",
                         self.summary_config.retention_policy,
                     )
-                    
+
                     if retention == "delete":
                         session.query(StorageMessage).filter(
                             StorageMessage.id.in_(summarized_ids)
                         ).delete(synchronize_session=False)
-                        logger.debug(f"Deleted {len(summarized_ids)} summarized messages")
+                        logger.debug(
+                            f"Deleted {len(summarized_ids)} summarized messages"
+                        )
                     else:
                         session.query(StorageMessage).filter(
-                             StorageMessage.id.in_(summarized_ids)
+                            StorageMessage.id.in_(summarized_ids)
                         ).update(
                             {
                                 "status": "inactive",

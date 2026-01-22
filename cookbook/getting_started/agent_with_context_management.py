@@ -73,33 +73,28 @@ You remember context from our entire conversation, even as it grows very long.""
         "What about multimodal AI? How is it different from generative AI?",
         "How do these AI trends compare to what we saw in 2023?",
         "Summarize what we've discussed so far about AI trends.",
-        
         # Deep dive into specific topics
         "Let's focus on LLMs. What are the leading LLM providers right now?",
         "Compare GPT-4 vs Claude vs Gemini - what are the key differences?",
         "Which one is best for code generation specifically?",
         "What about cost? Compare the pricing models of these providers.",
         "Summarize the LLM comparison we just did.",
-        
         # New direction - applications
         "Now let's talk about AI applications in healthcare.",
         "What are the regulatory challenges for AI in healthcare?",
         "How does HIPAA affect AI deployment in hospitals?",
         "Give me 3 examples of successful AI healthcare deployments.",
         "What about AI in medical imaging specifically?",
-        
         # Testing memory recall
         "Earlier we discussed AI trends - can you remind me of the top 5?",
         "How does the healthcare AI we just discussed relate to those trends?",
         "Which of the LLM providers we compared would be best for healthcare?",
-        
         # More depth
         "Let's discuss AI safety and alignment.",
         "What are the main concerns with AI safety today?",
         "How do companies like Anthropic approach AI safety?",
         "What is constitutional AI and how does it work?",
         "Compare the safety approaches of OpenAI vs Anthropic vs Google.",
-        
         # Final synthesis
         "Let's bring it all together. Based on everything we discussed...",
         "What's the future of AI in 2025 based on these trends?",
@@ -112,11 +107,11 @@ You remember context from our entire conversation, even as it grows very long.""
     for i, msg in enumerate(messages, 1):
         print(f"\n--- Message {i}/{len(messages)} ---")
         print(f"User: {msg[:50]}...")
-        
+
         result = await agent.run(msg, session_id="test_session")
         response = result.get("response", "")
         print(f"Agent: {response[:200]}...")
-        
+
         # Show metrics
         metrics = await agent.get_metrics()
         print(f"📈 Tokens used: {metrics.get('total_tokens', 'N/A')}")

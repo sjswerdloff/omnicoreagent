@@ -164,7 +164,7 @@ class BackgroundOmniCoreAgent(OmniCoreAgent):
             self._worker_task.cancel()
             try:
                 await self._worker_task
-                
+
                 if not self._task_queue.empty():
                     logger.warning(
                         f"Agent {self.agent_id} stopping with {self._task_queue.qsize()} pending tasks"
@@ -208,17 +208,15 @@ class BackgroundOmniCoreAgent(OmniCoreAgent):
         """Submit a task to the queue for execution."""
         try:
             timestamp = datetime.now(timezone.utc).isoformat()
-            
+
             queue_timeout = task_config.get("queue_timeout", 5.0)
-            
+
             await asyncio.wait_for(
-                self._task_queue.put(
-                    {"kwargs": task_config, "timestamp": timestamp}
-                ),
-                timeout=queue_timeout
+                self._task_queue.put({"kwargs": task_config, "timestamp": timestamp}),
+                timeout=queue_timeout,
             )
             logger.info(f"Task submitted for agent {self.agent_id}")
-            
+
         except asyncio.TimeoutError:
             logger.error(f"Task queue full for agent {self.agent_id}, dropping task")
             raise
@@ -280,11 +278,10 @@ class BackgroundOmniCoreAgent(OmniCoreAgent):
             )
 
             timeout = task_config.get("timeout", 300)
-            
+
             try:
                 result = await asyncio.wait_for(
-                    self._execute_with_retries(task_config),
-                    timeout=timeout
+                    self._execute_with_retries(task_config), timeout=timeout
                 )
             except asyncio.TimeoutError:
                 raise TimeoutError(f"Task execution timed out after {timeout} seconds")

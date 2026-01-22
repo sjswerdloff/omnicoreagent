@@ -29,7 +29,7 @@ async def main():
 
     # Step 1: Create specialized sub-agents
     # Each sub-agent is a full OmniCoreAgent with its own expertise
-    
+
     researcher = OmniCoreAgent(
         name="researcher",
         system_instruction="""You are a research specialist.
@@ -56,7 +56,7 @@ Be concise - provide a brief, well-written summary.""",
 
     # Step 2: Create parent agent with sub_agents parameter
     # The parent can now delegate tasks to these specialized agents
-    
+
     coordinator = OmniCoreAgent(
         name="project_coordinator",
         system_instruction="""You are a project coordinator.

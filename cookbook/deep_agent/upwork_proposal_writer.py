@@ -35,28 +35,42 @@ tools = ToolRegistry()
         "properties": {
             "job_description": {
                 "type": "string",
-                "description": "The full text of the job posting to analyze."
+                "description": "The full text of the job posting to analyze.",
             }
         },
-        "required": ["job_description"]
-    }
+        "required": ["job_description"],
+    },
 )
 def analyze_job_posting(job_description: str) -> Dict[str, Any]:
     """Analyze an Upwork job posting."""
     # Simulated analysis - in production, this would use NLP
     keywords = []
-    for word in ["Python", "JavaScript", "React", "API", "Machine Learning", 
-                 "Data", "Web", "Mobile", "AI", "Backend", "Frontend", "Full-stack"]:
+    for word in [
+        "Python",
+        "JavaScript",
+        "React",
+        "API",
+        "Machine Learning",
+        "Data",
+        "Web",
+        "Mobile",
+        "AI",
+        "Backend",
+        "Frontend",
+        "Full-stack",
+    ]:
         if word.lower() in job_description.lower():
             keywords.append(word)
-    
+
     # Detect budget type
     budget_type = "hourly" if "hourly" in job_description.lower() else "fixed"
-    
+
     # Detect urgency
-    urgent = any(word in job_description.lower() 
-                 for word in ["asap", "urgent", "immediately", "fast"])
-    
+    urgent = any(
+        word in job_description.lower()
+        for word in ["asap", "urgent", "immediately", "fast"]
+    )
+
     return {
         "status": "success",
         "data": {
@@ -66,7 +80,7 @@ def analyze_job_posting(job_description: str) -> Dict[str, Any]:
             "word_count": len(job_description.split()),
             "analysis_timestamp": datetime.now().isoformat(),
         },
-        "message": f"Successfully analyzed job posting. Found {len(keywords)} skills."
+        "message": f"Successfully analyzed job posting. Found {len(keywords)} skills.",
     }
 
 
@@ -78,11 +92,11 @@ def analyze_job_posting(job_description: str) -> Dict[str, Any]:
         "properties": {
             "profile_id": {
                 "type": "string",
-                "description": "Profile identifier (default: 'default')."
+                "description": "Profile identifier (default: 'default').",
             }
         },
-        "required": ["profile_id"]
-    }
+        "required": ["profile_id"],
+    },
 )
 def get_freelancer_profile(profile_id: str = "default") -> Dict[str, Any]:
     """Get the freelancer's profile information."""
@@ -91,9 +105,19 @@ def get_freelancer_profile(profile_id: str = "default") -> Dict[str, Any]:
         "name": "Alex Developer",
         "title": "Senior Full-Stack Developer & AI Specialist",
         "skills": [
-            "Python", "JavaScript", "TypeScript", "React", "Node.js",
-            "FastAPI", "PostgreSQL", "MongoDB", "Docker", "AWS",
-            "Machine Learning", "LLM Integration", "API Development"
+            "Python",
+            "JavaScript",
+            "TypeScript",
+            "React",
+            "Node.js",
+            "FastAPI",
+            "PostgreSQL",
+            "MongoDB",
+            "Docker",
+            "AWS",
+            "Machine Learning",
+            "LLM Integration",
+            "API Development",
         ],
         "years_experience": 8,
         "completed_jobs": 150,
@@ -103,18 +127,18 @@ def get_freelancer_profile(profile_id: str = "default") -> Dict[str, Any]:
             "AI/ML Applications",
             "Full-Stack Web Development",
             "API Design & Integration",
-            "Technical Architecture"
+            "Technical Architecture",
         ],
         "portfolio_highlights": [
             "Built AI-powered customer service platform (50k+ users)",
             "Developed trading analytics dashboard for hedge fund",
-            "Created document processing pipeline using LLMs"
+            "Created document processing pipeline using LLMs",
         ],
     }
     return {
         "status": "success",
         "data": data,
-        "message": f"Retrieved profile for {data['name']}"
+        "message": f"Retrieved profile for {data['name']}",
     }
 
 
@@ -127,11 +151,11 @@ def get_freelancer_profile(profile_id: str = "default") -> Dict[str, Any]:
             "required_skills": {
                 "type": "array",
                 "items": {"type": "string"},
-                "description": "List of skills required by the job (e.g. ['Python', 'React'])."
+                "description": "List of skills required by the job (e.g. ['Python', 'React']).",
             }
         },
-        "required": ["required_skills"]
-    }
+        "required": ["required_skills"],
+    },
 )
 def find_relevant_portfolio_items(required_skills: List[str]) -> Dict[str, Any]:
     """Find portfolio items that match job requirements."""
@@ -141,45 +165,42 @@ def find_relevant_portfolio_items(required_skills: List[str]) -> Dict[str, Any]:
             "title": "AI Customer Service Platform",
             "skills": ["Python", "Machine Learning", "API", "React"],
             "description": "Built an AI-powered customer service platform handling 50k+ queries/month",
-            "outcome": "Reduced support tickets by 60%"
+            "outcome": "Reduced support tickets by 60%",
         },
         {
             "title": "E-commerce Analytics Dashboard",
             "skills": ["React", "JavaScript", "Data", "API"],
             "description": "Real-time analytics dashboard for e-commerce platform",
-            "outcome": "Helped increase conversion rate by 25%"
+            "outcome": "Helped increase conversion rate by 25%",
         },
         {
             "title": "Document Processing Pipeline",
             "skills": ["Python", "AI", "Machine Learning", "Backend"],
             "description": "Automated document extraction and classification system",
-            "outcome": "Processed 10k+ documents daily with 99% accuracy"
+            "outcome": "Processed 10k+ documents daily with 99% accuracy",
         },
         {
             "title": "Mobile Banking App",
             "skills": ["React", "Mobile", "API", "Backend"],
             "description": "Full-stack mobile banking application",
-            "outcome": "Serving 100k+ active users"
+            "outcome": "Serving 100k+ active users",
         },
     ]
-    
+
     relevant = []
     for item in portfolio_db:
         match_score = len(set(item["skills"]) & set(required_skills))
         if match_score > 0:
-            relevant.append({
-                **item,
-                "relevance_score": match_score
-            })
-    
+            relevant.append({**item, "relevance_score": match_score})
+
     # Sort by relevance
     relevant.sort(key=lambda x: x["relevance_score"], reverse=True)
     top_items = relevant[:3]
-    
+
     return {
         "status": "success",
         "data": top_items,
-        "message": f"Found {len(top_items)} relevant portfolio items."
+        "message": f"Found {len(top_items)} relevant portfolio items.",
     }
 
 
@@ -189,17 +210,24 @@ def find_relevant_portfolio_items(required_skills: List[str]) -> Dict[str, Any]:
     inputSchema={
         "type": "object",
         "properties": {
-            "job_type": {"type": "string", "description": "Type of job (e.g. 'development')"},
-            "is_urgent": {"type": "boolean", "description": "Whether the job is urgent"},
-            "budget_type": {"type": "string", "description": "Type of budget: 'hourly' or 'fixed'"}
+            "job_type": {
+                "type": "string",
+                "description": "Type of job (e.g. 'development')",
+            },
+            "is_urgent": {
+                "type": "boolean",
+                "description": "Whether the job is urgent",
+            },
+            "budget_type": {
+                "type": "string",
+                "description": "Type of budget: 'hourly' or 'fixed'",
+            },
         },
-        "required": ["job_type", "is_urgent", "budget_type"]
-    }
+        "required": ["job_type", "is_urgent", "budget_type"],
+    },
 )
 def generate_proposal_structure(
-    job_type: str,
-    is_urgent: bool,
-    budget_type: str
+    job_type: str, is_urgent: bool, budget_type: str
 ) -> Dict[str, Any]:
     """Generate proposal structure."""
     structure = {
@@ -208,24 +236,24 @@ def generate_proposal_structure(
         "approach": "Brief technical approach",
         "portfolio": "Relevant project examples",
         "timeline": "Realistic timeline estimate",
-        "call_to_action": "Clear next step"
+        "call_to_action": "Clear next step",
     }
-    
+
     if is_urgent:
         structure["tone"] = "Confident, action-oriented, emphasize availability"
         structure["opening"] = "Lead with immediate availability"
     else:
         structure["tone"] = "Professional, thorough, relationship-building"
-    
+
     if budget_type == "fixed":
         structure["pricing"] = "Include fixed price estimate"
     else:
         structure["pricing"] = "Mention hourly rate flexibility"
-    
+
     return {
         "status": "success",
         "data": structure,
-        "message": "Generated proposal structure and tone advice."
+        "message": "Generated proposal structure and tone advice.",
     }
 
 
@@ -235,27 +263,33 @@ def generate_proposal_structure(
     inputSchema={
         "type": "object",
         "properties": {
-            "proposal_text": {"type": "string", "description": "Complete text of the proposal"},
-            "job_title": {"type": "string", "description": "Title of the job for filing"}
+            "proposal_text": {
+                "type": "string",
+                "description": "Complete text of the proposal",
+            },
+            "job_title": {
+                "type": "string",
+                "description": "Title of the job for filing",
+            },
         },
-        "required": ["proposal_text", "job_title"]
-    }
+        "required": ["proposal_text", "job_title"],
+    },
 )
 def save_proposal(proposal_text: str, job_title: str) -> Dict[str, Any]:
     """Save the proposal."""
     # In production, this would save to file/database
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"proposal_{timestamp}.md"
-    
+
     return {
         "status": "success",
         "data": {
             "filename": filename,
             "word_count": len(proposal_text.split()),
             "character_count": len(proposal_text),
-            "stored_path": f"/proposals/{filename}"
+            "stored_path": f"/proposals/{filename}",
         },
-        "message": f"Proposal saved as {filename}"
+        "message": f"Proposal saved as {filename}",
     }
 
 
@@ -263,13 +297,14 @@ def save_proposal(proposal_text: str, job_title: str) -> Dict[str, Any]:
 # MAIN - Run the Upwork Proposal Writer
 # =============================================================================
 
+
 async def main():
     """Run the Upwork Proposal Writer DeepAgent."""
-    
+
     print("=" * 60)
     print("🚀 Upwork Job Proposal Writer - DeepAgent Demo")
     print("=" * 60)
-    
+
     # Create the DeepAgent with proposal writing system instruction
     agent = DeepAgent(
         name="ProposalWriter",
@@ -300,13 +335,13 @@ You have tools to:
             "model": "gemini-3-pro-preview",
         },
         local_tools=tools,
-        debug=True
+        debug=True,
     )
-    
+
     await agent.initialize()
     print(f"\n✓ Agent initialized: {agent.name}")
     print(f"✓ Tools available: {len(list(tools.list_tools()))}")
-    
+
     # Sample job posting
     job_posting = """
     Looking for experienced Python developer to build an AI-powered 
@@ -330,13 +365,13 @@ You have tools to:
     - Your approach to this project
     - Timeline estimate
     """
-    
+
     print("\n📋 Job Posting:")
     print("-" * 40)
     print(job_posting[:300] + "...")
-    
+
     print("\n🤖 Generating proposal...\n")
-    
+
     result = await agent.run(f"""
     Write a winning Upwork proposal for this job posting:
     
@@ -352,13 +387,13 @@ You have tools to:
     
     Make the proposal specific, compelling, and professional.
     """)
-    
+
     print("=" * 60)
     print("📝 GENERATED PROPOSAL")
     print("=" * 60)
     print(result["response"])
     print("=" * 60)
-    
+
     await agent.cleanup()
     print("\n✓ Done!")
 

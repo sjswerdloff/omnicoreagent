@@ -52,10 +52,10 @@ async def main():
         print(f"\n--- Query {i}/{len(queries)} ---")
         result = await agent.run(query)
         print(f"Response: {result.get('response', '')[:100]}...")
-        
+
         # Get metrics after each call
         metrics = await agent.get_metrics()
-        
+
         print(f"\n📈 Metrics after query {i}:")
         print(f"  Total Requests: {metrics.get('total_requests', 0)}")
         print(f"  Total Tokens: {metrics.get('total_tokens', 0)}")
@@ -64,20 +64,20 @@ async def main():
 
     # Final metrics summary
     final_metrics = await agent.get_metrics()
-    
+
     print("\n" + "=" * 60)
     print("FINAL METRICS SUMMARY")
     print("=" * 60)
     print(f"""
 📊 Session Statistics:
-  • Total Requests: {final_metrics.get('total_requests', 0)}
-  • Total Tokens Used: {final_metrics.get('total_tokens', 0)}
-  • Input Tokens: {final_metrics.get('total_input_tokens', 0)}
-  • Output Tokens: {final_metrics.get('total_output_tokens', 0)}
+  • Total Requests: {final_metrics.get("total_requests", 0)}
+  • Total Tokens Used: {final_metrics.get("total_tokens", 0)}
+  • Input Tokens: {final_metrics.get("total_input_tokens", 0)}
+  • Output Tokens: {final_metrics.get("total_output_tokens", 0)}
   
 💰 Cost Estimation (GPT-4o pricing):
-  • Input: ~${final_metrics.get('total_input_tokens', 0) * 0.000005:.4f}
-  • Output: ~${final_metrics.get('total_output_tokens', 0) * 0.000015:.4f}
+  • Input: ~${final_metrics.get("total_input_tokens", 0) * 0.000005:.4f}
+  • Output: ~${final_metrics.get("total_output_tokens", 0) * 0.000015:.4f}
 """)
 
     print("=" * 60)

@@ -27,6 +27,7 @@ from omnicoreagent.core.tools.local_tools_registry import ToolRegistry
 # Fixtures
 # =============================================================================
 
+
 @pytest.fixture
 def model_config():
     return {"provider": "openai", "model": "gpt-4o"}
@@ -55,8 +56,8 @@ def prompt_builder():
 # Prompt Builder Tests
 # =============================================================================
 
-class TestDeepAgentPromptBuilder:
 
+class TestDeepAgentPromptBuilder:
     def test_build_includes_user_instruction(self, prompt_builder):
         """User instruction should be in the prompt."""
         result = prompt_builder.build(user_instruction="You are a data analyst.")
@@ -106,8 +107,8 @@ class TestDeepAgentPromptBuilder:
 # SubagentFactory Tests
 # =============================================================================
 
-class TestSubagentFactory:
 
+class TestSubagentFactory:
     @pytest.mark.asyncio
     async def test_create_subagent(self, factory):
         """Test subagent creation."""
@@ -117,7 +118,7 @@ class TestSubagentFactory:
             task="Test task",
             output_path="/memories/test/",
         )
-        
+
         assert agent.name == "subagent_test"
         assert "Test role" in agent.system_instruction
         assert "Test task" in agent.system_instruction
@@ -125,16 +126,16 @@ class TestSubagentFactory:
     @pytest.mark.asyncio
     async def test_run_subagent(self, factory):
         """Test running a subagent."""
-        with patch.object(OmniCoreAgent, 'run', new_callable=AsyncMock) as mock_run:
+        with patch.object(OmniCoreAgent, "run", new_callable=AsyncMock) as mock_run:
             mock_run.return_value = {"response": "Findings saved"}
-            
+
             result = await factory.run_subagent(
                 name="researcher",
                 role="Research expert",
                 task="Research topic X",
                 output_path="/memories/tasks/test/",
             )
-            
+
             # New standard tool return format
             assert result["status"] == "success"
             assert result["data"]["subagent_name"] == "researcher"
@@ -152,7 +153,7 @@ class TestSubagentFactory:
         """Test cleanup clears tracked subagents."""
         factory._active_subagents["test"] = MagicMock()
         factory._active_subagents["test"].cleanup = AsyncMock()
-        
+
         await factory.cleanup()
         assert len(factory._active_subagents) == 0
 
@@ -161,7 +162,7 @@ class TestSubagentFactory:
         """Test tools are registered."""
         registry = ToolRegistry()
         build_subagent_tools(factory, registry)
-        
+
         tool_names = [t.name for t in registry.list_tools()]
         assert "spawn_subagent" in tool_names
         assert "spawn_parallel_subagents" in tool_names
@@ -171,16 +172,16 @@ class TestSubagentFactory:
         """Test that the registered tool wrapper handles list input."""
         registry = ToolRegistry()
         build_subagent_tools(factory, registry)
-        
+
         spawn_tool = registry.get_tool("spawn_parallel_subagents")
-        
+
         # Mock factory.run_parallel_subagents to avoid actual execution
         factory.run_parallel_subagents = AsyncMock(return_value={"status": "success"})
-        
+
         # Pass a LIST directly, simulating framework auto-parsing
         input_list = [{"name": "test", "role": "r", "task": "t", "output_path": "p"}]
         await spawn_tool.execute({"subagents_json": input_list})
-        
+
         # Verify it called the factory method with the list
         factory.run_parallel_subagents.assert_called_once_with(input_list)
 
@@ -189,17 +190,17 @@ class TestSubagentFactory:
 # DeepAgent Initialization Tests
 # =============================================================================
 
-class TestDeepAgentInitialization:
 
+class TestDeepAgentInitialization:
     @pytest.mark.asyncio
     async def test_basic_initialization(self, deep_agent):
         """Test DeepAgent initializes correctly."""
         await deep_agent.initialize()
-        
+
         assert deep_agent._initialized is True
         assert deep_agent._agent is not None
         assert deep_agent._subagent_factory is not None
-        
+
         await deep_agent.cleanup()
 
     @pytest.mark.asyncio
@@ -222,11 +223,11 @@ class TestDeepAgentInitialization:
     async def test_subagent_tools_registered(self, deep_agent):
         """Subagent spawning tools should be available."""
         await deep_agent.initialize()
-        
+
         tool_names = [t.name for t in deep_agent._agent.local_tools.list_tools()]
         assert "spawn_subagent" in tool_names
         assert "spawn_parallel_subagents" in tool_names
-        
+
         await deep_agent.cleanup()
 
 
@@ -234,18 +235,18 @@ class TestDeepAgentInitialization:
 # DeepAgent Run Tests
 # =============================================================================
 
-class TestDeepAgentRun:
 
+class TestDeepAgentRun:
     @pytest.mark.asyncio
     async def test_run_delegates_to_agent(self, deep_agent):
         """Run should delegate to underlying agent."""
         await deep_agent.initialize()
-        
+
         mock_response = {"response": "Task complete", "metric": {}}
         deep_agent._agent.run = AsyncMock(return_value=mock_response)
-        
+
         result = await deep_agent.run("Do something")
-        
+
         assert result == mock_response
         await deep_agent.cleanup()
 
@@ -253,14 +254,17 @@ class TestDeepAgentRun:
     async def test_run_auto_initializes(self, deep_agent):
         """Run should auto-initialize if needed."""
         assert deep_agent._initialized is False
-        
-        with patch.object(deep_agent, 'initialize', new_callable=AsyncMock) as mock_init:
+
+        with patch.object(
+            deep_agent, "initialize", new_callable=AsyncMock
+        ) as mock_init:
+
             async def side_effect():
                 deep_agent._initialized = True
                 deep_agent._agent = MagicMock()
                 deep_agent._agent.run = AsyncMock(return_value={"response": "OK"})
                 deep_agent._subagent_factory = MagicMock()
-            
+
             mock_init.side_effect = side_effect
             await deep_agent.run("Test")
             mock_init.assert_called_once()
@@ -270,8 +274,8 @@ class TestDeepAgentRun:
 # Lifecycle Tests
 # =============================================================================
 
-class TestLifecycle:
 
+class TestLifecycle:
     @pytest.mark.asyncio
     async def test_cleanup_releases_resources(self, deep_agent):
         """Cleanup should release all resources."""
@@ -290,17 +294,17 @@ class TestLifecycle:
 # Edge Cases
 # =============================================================================
 
-class TestEdgeCases:
 
+class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_preserves_user_tools(self):
         """User tools should be preserved alongside spawn tools."""
         user_registry = ToolRegistry()
-        
+
         @user_registry.register_tool("my_custom_tool")
         def my_custom_tool(data: str) -> str:
             return data
-        
+
         agent = DeepAgent(
             name="ToolsTest",
             system_instruction="Test",
@@ -308,11 +312,11 @@ class TestEdgeCases:
             local_tools=user_registry,
         )
         await agent.initialize()
-        
+
         tool_names = [t.name for t in agent._agent.local_tools.list_tools()]
         assert "my_custom_tool" in tool_names
         assert "spawn_subagent" in tool_names
-        
+
         await agent.cleanup()
 
     @pytest.mark.asyncio
@@ -328,13 +332,13 @@ class TestEdgeCases:
             system_instruction="Test 2",
             model_config={"provider": "openai", "model": "gpt-4"},
         )
-        
+
         await agent1.initialize()
         await agent2.initialize()
-        
+
         # They should be independent
         assert agent1.name != agent2.name
         assert agent1._agent is not agent2._agent
-        
+
         await agent1.cleanup()
         await agent2.cleanup()

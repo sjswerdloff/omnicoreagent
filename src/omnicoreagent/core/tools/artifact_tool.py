@@ -19,11 +19,11 @@ def build_tool_registry_artifact_tool(
 ) -> ToolRegistry:
     """
     Register artifact access tools in a ToolRegistry.
-    
+
     These tools allow the agent to retrieve full content from offloaded
     tool responses that were saved to files to reduce context size.
     """
-    
+
     @registry.register_tool(
         name="read_artifact",
         description="""
@@ -53,7 +53,7 @@ def build_tool_registry_artifact_tool(
         if content is None:
             return f"Error: Artifact '{artifact_id}' not found. Check the artifact ID and try again."
         return content
-    
+
     @registry.register_tool(
         name="tail_artifact",
         description="""
@@ -73,7 +73,7 @@ def build_tool_registry_artifact_tool(
                     "type": "integer",
                     "description": "Number of lines from the end (default: 50)",
                     "default": 50,
-                }
+                },
             },
             "required": ["artifact_id"],
             "additionalProperties": False,
@@ -84,7 +84,7 @@ def build_tool_registry_artifact_tool(
         if content is None:
             return f"Error: Artifact '{artifact_id}' not found."
         return content
-    
+
     @registry.register_tool(
         name="search_artifact",
         description="""
@@ -104,7 +104,7 @@ def build_tool_registry_artifact_tool(
                 "query": {
                     "type": "string",
                     "description": "Search term (case-insensitive)",
-                }
+                },
             },
             "required": ["artifact_id", "query"],
             "additionalProperties": False,
@@ -115,7 +115,7 @@ def build_tool_registry_artifact_tool(
         if content is None:
             return f"Error: Artifact '{artifact_id}' not found."
         return content
-    
+
     @registry.register_tool(
         name="list_artifacts",
         description="""
@@ -135,17 +135,16 @@ def build_tool_registry_artifact_tool(
         artifacts = offloader.list_artifacts()
         if not artifacts:
             return "No artifacts have been offloaded in this session."
-        
+
         lines = ["Offloaded artifacts in this session:\n"]
         for a in artifacts:
             lines.append(
-                f"• {a['id']}\n"
-                f"  Tool: {a['tool']}, Tokens saved: {a['tokens_saved']}\n"
+                f"• {a['id']}\n  Tool: {a['tool']}, Tokens saved: {a['tokens_saved']}\n"
             )
-        
+
         stats = offloader.get_stats()
         lines.append(f"\nTotal tokens saved: {stats['tokens_saved']}")
-        
+
         return "\n".join(lines)
-    
+
     return registry

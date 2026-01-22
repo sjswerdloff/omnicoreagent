@@ -184,13 +184,15 @@ Provide a structured summary with sections for:
                 ],
             }
         ],
-        agent_config={"tool_offload": {
-                "enabled": True,              # Enable offloading
-                "threshold_tokens": 300,      # Offload if >300 tokens (low for demo)
-                "threshold_bytes": 1000,      # Or >1KB
-                "max_preview_tokens": 100,    # Show first ~100 tokens in context
+        agent_config={
+            "tool_offload": {
+                "enabled": True,  # Enable offloading
+                "threshold_tokens": 300,  # Offload if >300 tokens (low for demo)
+                "threshold_bytes": 1000,  # Or >1KB
+                "max_preview_tokens": 100,  # Show first ~100 tokens in context
                 "storage_dir": ".omnicoreagent_artifacts",
-            }},
+            }
+        },
         debug=True,
     )
 

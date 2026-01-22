@@ -254,11 +254,11 @@ class RedisMemoryStore(AbstractMemoryStore):
             if summarized_ids and summary_msg:
                 summary_id = str(uuid.uuid4())
                 summary_msg["id"] = summary_id
-                
+
                 dt = datetime.now(timezone.utc)
                 timestamp_iso = dt.isoformat()
                 timestamp_score = dt.timestamp()
-                
+
                 summary_redis_msg = {
                     "id": summary_id,
                     "role": summary_msg["role"],
@@ -276,9 +276,11 @@ class RedisMemoryStore(AbstractMemoryStore):
                     try:
                         client = await self._get_client()
                         key = f"omnicoreagent_memory:{session_id}"
-                        
-                        await client.zadd(key, {json.dumps(summary_redis_msg): timestamp_score})
-                        
+
+                        await client.zadd(
+                            key, {json.dumps(summary_redis_msg): timestamp_score}
+                        )
+
                         await self.mark_messages_summarized(
                             message_ids=summarized_ids,
                             summary_id=summary_id,
@@ -292,7 +294,7 @@ class RedisMemoryStore(AbstractMemoryStore):
                         logger.error(f"Background Redis persistence failed: {e}")
                     finally:
                         if self._connection_manager and client:
-                             self._connection_manager.release_client()
+                            self._connection_manager.release_client()
 
                 asyncio.create_task(_background_persist_summary())
 

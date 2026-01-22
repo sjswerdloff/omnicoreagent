@@ -36,6 +36,7 @@ from pydantic import ValidationError
 # Configuration Tests
 # ============================================================================
 
+
 class TestOffloadConfig:
     """Tests for OffloadConfig parsing and defaults."""
 
@@ -59,13 +60,15 @@ class TestOffloadConfig:
 
     def test_from_dict_custom_values(self):
         """Test creating config from custom dict."""
-        config = OffloadConfig.from_dict({
-            "enabled": False,
-            "threshold_tokens": 1000,
-            "threshold_bytes": 5000,
-            "max_preview_tokens": 200,
-            "storage_dir": ".custom_artifacts",
-        })
+        config = OffloadConfig.from_dict(
+            {
+                "enabled": False,
+                "threshold_tokens": 1000,
+                "threshold_bytes": 5000,
+                "max_preview_tokens": 200,
+                "storage_dir": ".custom_artifacts",
+            }
+        )
         assert config.enabled == False
         assert config.threshold_tokens == 1000
         assert config.threshold_bytes == 5000
@@ -74,10 +77,12 @@ class TestOffloadConfig:
 
     def test_from_dict_partial(self):
         """Test partial config uses defaults for missing keys."""
-        config = OffloadConfig.from_dict({
-            "enabled": True,
-            "threshold_tokens": 250,
-        })
+        config = OffloadConfig.from_dict(
+            {
+                "enabled": True,
+                "threshold_tokens": 250,
+            }
+        )
         assert config.enabled == True
         assert config.threshold_tokens == 250
         assert config.threshold_bytes == 2000  # default
@@ -94,6 +99,7 @@ class TestOffloadConfig:
 # AgentConfig Validation Tests
 # ============================================================================
 
+
 class TestAgentConfigToolOffloadValidation:
     """Tests for tool_offload validation in AgentConfig."""
 
@@ -103,7 +109,7 @@ class TestAgentConfigToolOffloadValidation:
             agent_name="test",
             max_steps=10,
             tool_call_timeout=30,
-            tool_offload={"enabled": True, "threshold_tokens": 500}
+            tool_offload={"enabled": True, "threshold_tokens": 500},
         )
         assert config.tool_offload["enabled"] == True
 
@@ -114,7 +120,7 @@ class TestAgentConfigToolOffloadValidation:
                 agent_name="test",
                 max_steps=10,
                 tool_call_timeout=30,
-                tool_offload={"threshold_tokens": -1}
+                tool_offload={"threshold_tokens": -1},
             )
         assert "threshold_tokens must be positive" in str(exc_info.value)
 
@@ -125,7 +131,7 @@ class TestAgentConfigToolOffloadValidation:
                 agent_name="test",
                 max_steps=10,
                 tool_call_timeout=30,
-                tool_offload={"threshold_bytes": 0}
+                tool_offload={"threshold_bytes": 0},
             )
         assert "threshold_bytes must be positive" in str(exc_info.value)
 
@@ -136,7 +142,7 @@ class TestAgentConfigToolOffloadValidation:
                 agent_name="test",
                 max_steps=10,
                 tool_call_timeout=30,
-                tool_offload={"max_preview_tokens": -5}
+                tool_offload={"max_preview_tokens": -5},
             )
         assert "max_preview_tokens must be positive" in str(exc_info.value)
 
@@ -147,7 +153,7 @@ class TestAgentConfigToolOffloadValidation:
                 agent_name="test",
                 max_steps=10,
                 tool_call_timeout=30,
-                tool_offload={"storage_dir": ""}
+                tool_offload={"storage_dir": ""},
             )
         assert "storage_dir must be a non-empty string" in str(exc_info.value)
 
@@ -158,7 +164,7 @@ class TestAgentConfigToolOffloadValidation:
                 agent_name="test",
                 max_steps=10,
                 tool_call_timeout=30,
-                tool_offload={"retention_days": -1}
+                tool_offload={"retention_days": -1},
             )
         assert "retention_days must be non-negative" in str(exc_info.value)
 
@@ -166,6 +172,7 @@ class TestAgentConfigToolOffloadValidation:
 # ============================================================================
 # Should Offload Tests
 # ============================================================================
+
 
 class TestShouldOffload:
     """Tests for should_offload threshold detection."""
@@ -175,7 +182,7 @@ class TestShouldOffload:
         self.temp_dir = tempfile.mkdtemp()
         self.offloader = ToolResponseOffloader(
             config={"enabled": True, "threshold_tokens": 50, "threshold_bytes": 200},
-            base_dir=self.temp_dir
+            base_dir=self.temp_dir,
         )
 
     def teardown_method(self):
@@ -185,8 +192,7 @@ class TestShouldOffload:
     def test_should_offload_disabled(self):
         """Test that should_offload returns False when disabled."""
         offloader = ToolResponseOffloader(
-            config={"enabled": False},
-            base_dir=self.temp_dir
+            config={"enabled": False}, base_dir=self.temp_dir
         )
         large_content = "word " * 1000
         assert offloader.should_offload(large_content) == False
@@ -220,6 +226,7 @@ class TestShouldOffload:
 # Preview Generation Tests
 # ============================================================================
 
+
 class TestPreviewGeneration:
     """Tests for preview text generation."""
 
@@ -231,7 +238,7 @@ class TestPreviewGeneration:
                 "max_preview_tokens": 50,
                 "max_preview_lines": 5,
             },
-            base_dir=self.temp_dir
+            base_dir=self.temp_dir,
         )
 
     def teardown_method(self):
@@ -248,7 +255,7 @@ class TestPreviewGeneration:
         lines = [f"Line {i}" for i in range(20)]
         content = "\n".join(lines)
         preview = self.offloader.get_preview(content)
-        
+
         # Should have max_preview_lines (5) lines + truncation indicator
         assert "Line 0" in preview
         assert "Line 4" in preview
@@ -259,7 +266,7 @@ class TestPreviewGeneration:
         long_line = "word " * 100  # Very long line
         content = long_line
         preview = self.offloader.get_preview(content)
-        
+
         # Preview should be shorter than original
         assert len(preview) < len(content)
         assert "truncated" in preview
@@ -276,6 +283,7 @@ class TestPreviewGeneration:
 # Offload Functionality Tests
 # ============================================================================
 
+
 class TestOffload:
     """Tests for the offload() method."""
 
@@ -287,7 +295,7 @@ class TestOffload:
                 "threshold_tokens": 20,
                 "max_preview_tokens": 50,
             },
-            base_dir=self.temp_dir
+            base_dir=self.temp_dir,
         )
 
     def teardown_method(self):
@@ -297,7 +305,7 @@ class TestOffload:
         """Test offload creates artifact file."""
         content = "Test content " * 50
         result = self.offloader.offload("test_tool", content)
-        
+
         assert os.path.exists(result.artifact_path)
         with open(result.artifact_path) as f:
             assert f.read() == content
@@ -306,7 +314,7 @@ class TestOffload:
         """Test offload returns OffloadedResponse with correct fields."""
         content = "Test content " * 50
         result = self.offloader.offload("my_search_tool", content)
-        
+
         assert isinstance(result, OffloadedResponse)
         assert result.tool_name == "my_search_tool"
         assert "my_search_tool" in result.artifact_id
@@ -317,7 +325,7 @@ class TestOffload:
         """Test context message has correct format."""
         content = "Data " * 100
         result = self.offloader.offload("api_call", content)
-        
+
         message = result.context_message
         assert "[TOOL RESPONSE OFFLOADED]" in message
         assert "api_call" in message
@@ -329,10 +337,14 @@ class TestOffload:
         """Test offload creates .meta.json file."""
         content = "Content " * 50
         result = self.offloader.offload("test_tool", content, metadata={"key": "value"})
-        
-        meta_path = Path(self.temp_dir) / ".omnicoreagent_artifacts" / f"{result.artifact_id}.meta.json"
+
+        meta_path = (
+            Path(self.temp_dir)
+            / ".omnicoreagent_artifacts"
+            / f"{result.artifact_id}.meta.json"
+        )
         assert meta_path.exists()
-        
+
         with open(meta_path) as f:
             meta = json.load(f)
             assert meta["tool_name"] == "test_tool"
@@ -343,10 +355,10 @@ class TestOffload:
         """Test offload updates internal statistics."""
         content1 = "Content " * 50
         content2 = "More content " * 50
-        
+
         self.offloader.offload("tool1", content1)
         self.offloader.offload("tool2", content2)
-        
+
         stats = self.offloader.get_stats()
         assert stats["offload_count"] == 2
         assert stats["tokens_saved"] > 0
@@ -356,21 +368,21 @@ class TestOffload:
         """Test JSON content gets .json extension."""
         content = json.dumps({"results": [1, 2, 3] * 50})
         result = self.offloader.offload("api_tool", content)
-        
+
         assert result.artifact_path.endswith(".json")
 
     def test_offload_detects_xml_extension(self):
         """Test XML content gets .xml extension."""
         content = "<?xml version='1.0'?><data>" + "<item>x</item>" * 50 + "</data>"
         result = self.offloader.offload("xml_tool", content)
-        
+
         assert result.artifact_path.endswith(".xml")
 
     def test_offload_plain_text_extension(self):
         """Test plain text gets .txt extension."""
         content = "Plain text content " * 50
         result = self.offloader.offload("text_tool", content)
-        
+
         assert result.artifact_path.endswith(".txt")
 
 
@@ -378,18 +390,20 @@ class TestOffload:
 # Artifact Retrieval Tests
 # ============================================================================
 
+
 class TestArtifactRetrieval:
     """Tests for read_artifact, tail_artifact, search_artifact."""
 
     def setup_method(self):
         self.temp_dir = tempfile.mkdtemp()
         self.offloader = ToolResponseOffloader(
-            config={"enabled": True, "threshold_tokens": 10},
-            base_dir=self.temp_dir
+            config={"enabled": True, "threshold_tokens": 10}, base_dir=self.temp_dir
         )
-        
+
         # Create test artifact
-        self.test_content = "\n".join([f"Line {i}: Test content here" for i in range(100)])
+        self.test_content = "\n".join(
+            [f"Line {i}: Test content here" for i in range(100)]
+        )
         self.artifact = self.offloader.offload("test_tool", self.test_content)
 
     def teardown_method(self):
@@ -408,7 +422,7 @@ class TestArtifactRetrieval:
     def test_tail_artifact_returns_last_lines(self):
         """Test tail_artifact returns last N lines."""
         result = self.offloader.tail_artifact(self.artifact.artifact_id, lines=10)
-        
+
         assert "Line 99" in result
         assert "Line 90" in result
         assert "Line 50" not in result  # Should not be in last 10 lines
@@ -418,7 +432,7 @@ class TestArtifactRetrieval:
         """Test tail with lines > content returns full content."""
         small_content = "Line 1\nLine 2\nLine 3"
         artifact = self.offloader.offload("small_tool", small_content + " " * 100)
-        
+
         result = self.offloader.tail_artifact(artifact.artifact_id, lines=100)
         # Should contain all lines without truncation indicator
         assert "Line 1" in result
@@ -432,7 +446,7 @@ class TestArtifactRetrieval:
     def test_search_artifact_finds_matches(self):
         """Test search_artifact finds matching lines."""
         result = self.offloader.search_artifact(self.artifact.artifact_id, "Line 50")
-        
+
         assert "Line 50" in result
         assert "Found 1 matches" in result
 
@@ -443,12 +457,16 @@ class TestArtifactRetrieval:
 
     def test_search_artifact_multiple_matches(self):
         """Test search with multiple matches."""
-        result = self.offloader.search_artifact(self.artifact.artifact_id, "Test content")
+        result = self.offloader.search_artifact(
+            self.artifact.artifact_id, "Test content"
+        )
         assert "Found 100 matches" in result or "10 more matches" in result
 
     def test_search_artifact_no_matches(self):
         """Test search with no matches."""
-        result = self.offloader.search_artifact(self.artifact.artifact_id, "ZZZNOMATCHZZZ")
+        result = self.offloader.search_artifact(
+            self.artifact.artifact_id, "ZZZNOMATCHZZZ"
+        )
         assert "No matches found" in result
 
     def test_search_artifact_not_found(self):
@@ -461,14 +479,14 @@ class TestArtifactRetrieval:
 # Artifact Listing Tests
 # ============================================================================
 
+
 class TestArtifactListing:
     """Tests for list_artifacts and get_stats."""
 
     def setup_method(self):
         self.temp_dir = tempfile.mkdtemp()
         self.offloader = ToolResponseOffloader(
-            config={"enabled": True, "threshold_tokens": 10},
-            base_dir=self.temp_dir
+            config={"enabled": True, "threshold_tokens": 10}, base_dir=self.temp_dir
         )
 
     def teardown_method(self):
@@ -483,10 +501,10 @@ class TestArtifactListing:
         """Test list_artifacts returns offloaded items."""
         self.offloader.offload("tool1", "Content " * 50)
         self.offloader.offload("tool2", "More content " * 50)
-        
+
         artifacts = self.offloader.list_artifacts()
         assert len(artifacts) == 2
-        
+
         tool_names = [a["tool"] for a in artifacts]
         assert "tool1" in tool_names
         assert "tool2" in tool_names
@@ -494,7 +512,7 @@ class TestArtifactListing:
     def test_list_artifacts_includes_tokens_saved(self):
         """Test list includes tokens_saved field."""
         self.offloader.offload("tool1", "Content " * 100)
-        
+
         artifacts = self.offloader.list_artifacts()
         assert "tokens_saved" in artifacts[0]
         # tokens_saved can be 0 for small content with high overhead
@@ -510,7 +528,7 @@ class TestArtifactListing:
         """Test get_stats accumulates correctly."""
         self.offloader.offload("tool1", "Content " * 100)
         self.offloader.offload("tool2", "More " * 100)
-        
+
         stats = self.offloader.get_stats()
         assert stats["offload_count"] == 2
         assert stats["tokens_saved"] >= 0  # May be 0 for small content
@@ -521,14 +539,14 @@ class TestArtifactListing:
 # Edge Cases Tests
 # ============================================================================
 
+
 class TestEdgeCases:
     """Tests for edge cases and special scenarios."""
 
     def setup_method(self):
         self.temp_dir = tempfile.mkdtemp()
         self.offloader = ToolResponseOffloader(
-            config={"enabled": True, "threshold_tokens": 10},
-            base_dir=self.temp_dir
+            config={"enabled": True, "threshold_tokens": 10}, base_dir=self.temp_dir
         )
 
     def teardown_method(self):
@@ -538,7 +556,7 @@ class TestEdgeCases:
         """Test handling of unicode content."""
         content = "日本語テスト 🎉 émojis ñ " * 50
         result = self.offloader.offload("unicode_tool", content)
-        
+
         # Read back and verify
         retrieved = self.offloader.read_artifact(result.artifact_id)
         assert retrieved == content
@@ -547,7 +565,7 @@ class TestEdgeCases:
         """Test handling of very long single lines."""
         content = "x" * 100000  # 100KB single line
         result = self.offloader.offload("long_line_tool", content)
-        
+
         retrieved = self.offloader.read_artifact(result.artifact_id)
         assert retrieved == content
 
@@ -555,14 +573,14 @@ class TestEdgeCases:
         """Test handling of content with empty lines."""
         content = "Line 1\n\n\nLine 4\n\nLine 6" + " padding" * 50
         result = self.offloader.offload("empty_lines_tool", content)
-        
+
         retrieved = self.offloader.read_artifact(result.artifact_id)
         assert retrieved == content
 
     def test_special_characters_in_tool_name(self):
         """Test tool names with special characters are sanitized."""
         result = self.offloader.offload("tool/with:special*chars", "Content " * 50)
-        
+
         # Artifact ID should be sanitized
         assert "/" not in result.artifact_id
         assert ":" not in result.artifact_id
@@ -571,7 +589,7 @@ class TestEdgeCases:
     def test_gitignore_created(self):
         """Test .gitignore is created in storage directory."""
         self.offloader.offload("test", "Content " * 50)
-        
+
         gitignore_path = Path(self.temp_dir) / ".omnicoreagent_artifacts" / ".gitignore"
         assert gitignore_path.exists()
         assert "*" in gitignore_path.read_text()
@@ -580,7 +598,7 @@ class TestEdgeCases:
         """Test malformed JSON gets .txt extension."""
         content = "{not valid json: [1, 2, 3" + " " * 100
         result = self.offloader.offload("bad_json_tool", content)
-        
+
         assert result.artifact_path.endswith(".txt")
 
 
@@ -588,19 +606,18 @@ class TestEdgeCases:
 # Artifact Tool Registration Tests
 # ============================================================================
 
+
 class TestArtifactToolRegistration:
     """Tests for build_tool_registry_artifact_tool."""
 
     def setup_method(self):
         self.temp_dir = tempfile.mkdtemp()
         self.offloader = ToolResponseOffloader(
-            config={"enabled": True, "threshold_tokens": 10},
-            base_dir=self.temp_dir
+            config={"enabled": True, "threshold_tokens": 10}, base_dir=self.temp_dir
         )
         self.registry = ToolRegistry()
         build_tool_registry_artifact_tool(
-            offloader=self.offloader,
-            registry=self.registry
+            offloader=self.offloader, registry=self.registry
         )
 
     def teardown_method(self):
@@ -621,18 +638,18 @@ class TestArtifactToolRegistration:
         self.offloader.offload("test", "Content for testing " * 50)
         artifacts = self.offloader.list_artifacts()
         artifact_id = artifacts[0]["id"]
-        
+
         # Get tool and call its function
         tool = self.registry.tools["read_artifact"]
         result = tool.function(artifact_id=artifact_id)
-        
+
         assert "Content for testing" in result
 
     def test_read_artifact_tool_error_handling(self):
         """Test read_artifact tool handles missing artifact."""
         tool = self.registry.tools["read_artifact"]
         result = tool.function(artifact_id="nonexistent")
-        
+
         assert "Error" in result
         assert "not found" in result
 
@@ -640,10 +657,10 @@ class TestArtifactToolRegistration:
         """Test registered list_artifacts tool function works."""
         self.offloader.offload("tool1", "Content " * 50)
         self.offloader.offload("tool2", "More " * 50)
-        
+
         tool = self.registry.tools["list_artifacts"]
         result = tool.function()
-        
+
         assert "tool1" in result
         assert "tool2" in result
 
@@ -651,6 +668,7 @@ class TestArtifactToolRegistration:
 # ============================================================================
 # Cleanup Tests
 # ============================================================================
+
 
 class TestCleanup:
     """Tests for old artifact cleanup."""
@@ -663,7 +681,7 @@ class TestCleanup:
                 "threshold_tokens": 10,
                 "retention_days": 0,  # For testing
             },
-            base_dir=self.temp_dir
+            base_dir=self.temp_dir,
         )
 
     def teardown_method(self):
@@ -674,10 +692,10 @@ class TestCleanup:
         # Create artifact
         result = self.offloader.offload("test", "Content " * 50)
         assert os.path.exists(result.artifact_path)
-        
+
         # With retention_days=0, all artifacts are "old"
         self.offloader.cleanup_old_artifacts()
-        
+
         # Artifact should be removed (retention_days=0 means immediate expiry)
         # Note: This test may pass or fail depending on timing
         # A more robust test would mock datetime
@@ -685,9 +703,9 @@ class TestCleanup:
     def test_cleanup_preserves_gitignore(self):
         """Test cleanup preserves .gitignore file."""
         self.offloader.offload("test", "Content " * 50)
-        
+
         self.offloader.cleanup_old_artifacts()
-        
+
         gitignore_path = Path(self.temp_dir) / ".omnicoreagent_artifacts" / ".gitignore"
         assert gitignore_path.exists()
 

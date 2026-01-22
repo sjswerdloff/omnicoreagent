@@ -32,6 +32,7 @@ logger = logging.getLogger("OmniRexTools")
 # HELPER FUNCTIONS
 # =============================================================================
 
+
 def _tavily_search(query: str, max_results: int = 5) -> list:
     """Execute real-time search via Tavily API."""
     api_key = os.getenv("TAVILY_API_KEY")
@@ -45,9 +46,9 @@ def _tavily_search(query: str, max_results: int = 5) -> list:
                 "query": query,
                 "search_depth": "advanced",
                 "include_answer": False,
-                "max_results": max_results
+                "max_results": max_results,
             },
-            timeout=15
+            timeout=15,
         )
         if response.status_code == 200:
             return response.json().get("results", [])
@@ -64,10 +65,10 @@ def ensure_string(content: Any) -> str:
     """
     if content is None:
         return ""
-        
+
     if isinstance(content, str):
         clean_content = content.strip()
-        if clean_content.startswith('[') and clean_content.endswith(']'):
+        if clean_content.startswith("[") and clean_content.endswith("]"):
             try:
                 parsed = ast.literal_eval(clean_content)
                 if isinstance(parsed, list):
@@ -75,10 +76,10 @@ def ensure_string(content: Any) -> str:
             except (ValueError, SyntaxError):
                 pass
         return content
-        
+
     if isinstance(content, list):
         return "\n".join(str(x) for x in content)
-        
+
     return str(content)
 
 
@@ -90,19 +91,19 @@ def clean_highlight_text(text: str) -> str:
     - Remove extra whitespace
     """
     import html
-    
+
     if not text:
         return ""
-    
+
     # Strip XML/HTML tags (e.g., <item>, </item>, <highlight>)
-    cleaned = re.sub(r'<[^>]+>', '', text)
-    
+    cleaned = re.sub(r"<[^>]+>", "", text)
+
     # Decode HTML entities
     cleaned = html.unescape(cleaned)
-    
+
     # Normalize whitespace
-    cleaned = ' '.join(cleaned.split())
-    
+    cleaned = " ".join(cleaned.split())
+
     return cleaned.strip()
 
 
@@ -116,8 +117,8 @@ def get_output_dir() -> str:
     base_dir = os.getcwd()
     if "cookbook" in base_dir:
         while "cookbook" in os.path.basename(base_dir):
-             base_dir = os.path.dirname(base_dir)
-             
+            base_dir = os.path.dirname(base_dir)
+
     output_dir = os.path.join(base_dir, "outputs")
     os.makedirs(output_dir, exist_ok=True)
     return output_dir
@@ -130,12 +131,12 @@ def robust_to_html(text: str) -> str:
     """
     if text:
         text = textwrap.dedent(text)
-        
+
     try:
         import markdown
+
         return markdown.markdown(
-            text, 
-            extensions=['tables', 'fenced_code', 'nl2br', 'sane_lists', 'smarty']
+            text, extensions=["tables", "fenced_code", "nl2br", "sane_lists", "smarty"]
         )
     except ImportError:
         pass
@@ -216,31 +217,38 @@ def robust_to_html(text: str) -> str:
         processed_lines.append(f"</{list_type}>")
 
     html = "\n".join(processed_lines)
-    
+
     # Inline formatting
     html = re.sub(r"\*\*\*(.+?)\*\*\*", r"<strong><em>\1</em></strong>", html)
     html = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", html)
     html = re.sub(r"__(.+?)__", r"<strong>\1</strong>", html)
     html = re.sub(r"\*(.+?)\*", r"<em>\1</em>", html)
     html = re.sub(r"_(.+?)_", r"<em>\1</em>", html)
-    
+
     # Links and Code
     html = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2">\1</a>', html)
     html = re.sub(r"`([^`]+)`", r"<code>\1</code>", html)
-    
+
     # Paragraph wrapping
     paragraphs = html.split("\n\n")
     final_html = []
     for p in paragraphs:
         p = p.strip()
-        if not p: continue
-        if p.startswith("<h") or p.startswith("<ul") or p.startswith("<ol") or \
-           p.startswith("<hr") or p.startswith("<pre") or p.startswith("<blockquote"):
+        if not p:
+            continue
+        if (
+            p.startswith("<h")
+            or p.startswith("<ul")
+            or p.startswith("<ol")
+            or p.startswith("<hr")
+            or p.startswith("<pre")
+            or p.startswith("<blockquote")
+        ):
             final_html.append(p)
         else:
             p = p.replace("\n", "<br>\n")
             final_html.append(f"<p>{p}</p>")
-            
+
     return "\n".join(final_html)
 
 
@@ -248,10 +256,11 @@ def robust_to_html(text: str) -> str:
 # MASTER TOOL REGISTRY CREATOR
 # =============================================================================
 
+
 def create_omnirex_tools() -> ToolRegistry:
     """
     Creates a SINGLE registry containing ALL OmniRex Due Diligence tools.
-    
+
     Tools included:
     1. generate_html_report - Professional investment report
     2. generate_dashboard_infographic - Goldman Sachs-style one-pager
@@ -261,11 +270,12 @@ def create_omnirex_tools() -> ToolRegistry:
     6. assess_macro_risk - Country-specific risk assessment
     """
     registry = ToolRegistry()
-    
+
     # Check matplotlib availability
     try:
         import matplotlib.pyplot as plt
         import matplotlib
+
         matplotlib.use("Agg")  # Headless mode
         HAS_MATPLOTLIB = True
     except ImportError:
@@ -324,65 +334,75 @@ def create_omnirex_tools() -> ToolRegistry:
             "properties": {
                 "company_name": {
                     "type": "string",
-                    "description": "Name of the company being evaluated."
+                    "description": "Name of the company being evaluated.",
                 },
                 "report_title": {
                     "type": "string",
-                    "description": "Report title (e.g., 'Series A Investment Evaluation')."
+                    "description": "Report title (e.g., 'Series A Investment Evaluation').",
                 },
                 "content": {
                     "type": "string",
-                    "description": "Executive Summary content in markdown format."
+                    "description": "Executive Summary content in markdown format.",
                 },
                 "sections": {
                     "type": "object",
                     "description": "Dict of section titles to content. Keys become section headers.",
-                    "additionalProperties": {"type": "string"}
+                    "additionalProperties": {"type": "string"},
                 },
                 "dashboard_path": {
                     "type": "string",
-                    "description": "Absolute path to the infographic PNG from generate_dashboard_infographic."
+                    "description": "Absolute path to the infographic PNG from generate_dashboard_infographic.",
                 },
                 "chart_path": {
                     "type": "string",
-                    "description": "Absolute path to the financial chart PNG from generate_financial_chart."
-                }
+                    "description": "Absolute path to the financial chart PNG from generate_financial_chart.",
+                },
             },
             "required": ["company_name", "report_title", "content"],
             "additionalProperties": False,
         },
     )
     def generate_html_report(
-        company_name: str, 
-        report_title: str, 
-        content: Union[str, List[Any]], 
+        company_name: str,
+        report_title: str,
+        content: Union[str, List[Any]],
         sections: Dict[str, str] = None,
         dashboard_path: str = None,
-        chart_path: str = None
+        chart_path: str = None,
     ) -> dict:
         """Generate professional HTML investment report."""
-        
+
         # Clean inputs
         company_name = ensure_string(company_name)
         report_title = ensure_string(report_title)
         main_content = ensure_string(content)
-        current_date = datetime.now().strftime('%B %d, %Y')
-        
+        current_date = datetime.now().strftime("%B %d, %Y")
+
         # Sanitize paths
-        if dashboard_path and (dashboard_path.startswith("N/A") or dashboard_path.lower() == "none" or "failed" in dashboard_path.lower()):
+        if dashboard_path and (
+            dashboard_path.startswith("N/A")
+            or dashboard_path.lower() == "none"
+            or "failed" in dashboard_path.lower()
+        ):
             dashboard_path = None
-        if chart_path and (chart_path.startswith("N/A") or chart_path.lower() == "none" or "failed" in chart_path.lower()):
+        if chart_path and (
+            chart_path.startswith("N/A")
+            or chart_path.lower() == "none"
+            or "failed" in chart_path.lower()
+        ):
             chart_path = None
-        
+
         # Build sections HTML
         sections_html = ""
         if sections:
             if isinstance(sections, str):
-                try: 
+                try:
                     sections = json.loads(sections)
                 except:
                     parsed_sections = {}
-                    matches = re.findall(r"<([a-zA-Z0-9_]+)>\s*(.*?)\s*</\1>", sections, re.DOTALL)
+                    matches = re.findall(
+                        r"<([a-zA-Z0-9_]+)>\s*(.*?)\s*</\1>", sections, re.DOTALL
+                    )
                     if matches:
                         for tag, tag_content in matches:
                             title = tag.replace("_", " ").replace("And", "&").title()
@@ -392,7 +412,7 @@ def create_omnirex_tools() -> ToolRegistry:
                         sections = {"Detailed Analysis": sections}
                     else:
                         sections = {}
-                
+
             if isinstance(sections, dict):
                 for title, sec_content in sections.items():
                     title = ensure_string(title)
@@ -414,7 +434,7 @@ def create_omnirex_tools() -> ToolRegistry:
                 <figcaption>Key Metrics Dashboard</figcaption>
             </figure>
             '''
-        
+
         # Chart embed HTML
         chart_html = ""
         if chart_path and os.path.exists(chart_path):
@@ -684,7 +704,7 @@ def create_omnirex_tools() -> ToolRegistry:
         
         {chart_html}
         
-        {sections_html if sections_html else ''}
+        {sections_html if sections_html else ""}
     </main>
     
     <footer class="footer">
@@ -695,20 +715,20 @@ def create_omnirex_tools() -> ToolRegistry:
     </footer>
 </body>
 </html>"""
-        
+
         # Save report
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"omnirex_report_{company_name.replace(' ', '_')}_{timestamp}.html"
         filepath = os.path.join(get_output_dir(), filename)
-        
+
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(html_template)
-        
+
         logger.info(f"HTML report generated: {filepath}")
         return {
             "status": "success",
             "message": f"Professional report saved: {filepath}",
-            "data": {"filepath": filepath}
+            "data": {"filepath": filepath},
         }
 
     # =========================================================================
@@ -762,40 +782,57 @@ def create_omnirex_tools() -> ToolRegistry:
             "properties": {
                 "company_name": {
                     "type": "string",
-                    "description": "Company name displayed prominently in header."
+                    "description": "Company name displayed prominently in header.",
                 },
                 "valuation": {
                     "type": "string",
-                    "description": "Current valuation with currency (e.g., '$50M', '$3B')."
+                    "description": "Current valuation with currency (e.g., '$50M', '$3B').",
                 },
                 "arr": {
                     "type": "string",
-                    "description": "Annual Recurring Revenue with currency (e.g., '$5.2M')."
+                    "description": "Annual Recurring Revenue with currency (e.g., '$5.2M').",
                 },
                 "growth_rate": {
                     "type": "string",
-                    "description": "Year-over-year growth rate (e.g., '127%', '85%')."
+                    "description": "Year-over-year growth rate (e.g., '127%', '85%').",
                 },
                 "market_size": {
                     "type": "string",
-                    "description": "Total Addressable Market (e.g., '$8.3B', '$50B')."
+                    "description": "Total Addressable Market (e.g., '$8.3B', '$50B').",
                 },
                 "risk_score": {
                     "type": "number",
-                    "description": "Risk score from 1 (low) to 10 (high)."
+                    "description": "Risk score from 1 (low) to 10 (high).",
                 },
                 "recommendation": {
                     "type": "string",
-                    "enum": ["BUY", "HOLD", "PASS", "STRONG BUY", "INVEST", "MONITOR", "FUND", "CONDITIONAL"],
-                    "description": "Investment recommendation."
+                    "enum": [
+                        "BUY",
+                        "HOLD",
+                        "PASS",
+                        "STRONG BUY",
+                        "INVEST",
+                        "MONITOR",
+                        "FUND",
+                        "CONDITIONAL",
+                    ],
+                    "description": "Investment recommendation.",
                 },
                 "key_highlights": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "2-4 key highlights or bullet points."
-                }
+                    "description": "2-4 key highlights or bullet points.",
+                },
             },
-            "required": ["company_name", "valuation", "arr", "growth_rate", "market_size", "risk_score", "recommendation"],
+            "required": [
+                "company_name",
+                "valuation",
+                "arr",
+                "growth_rate",
+                "market_size",
+                "risk_score",
+                "recommendation",
+            ],
             "additionalProperties": False,
         },
     )
@@ -807,17 +844,17 @@ def create_omnirex_tools() -> ToolRegistry:
         market_size: str,
         risk_score: float,
         recommendation: str,
-        key_highlights: List[str] = None
+        key_highlights: List[str] = None,
     ) -> dict:
         """Generate Goldman Sachs-style investment infographic."""
         if not HAS_MATPLOTLIB:
             return {"status": "error", "message": "Matplotlib is not installed."}
-            
+
         try:
             import numpy as np
             from matplotlib.patches import FancyBboxPatch, Circle, Wedge
             import matplotlib.patheffects as path_effects
-            
+
             # Ensure clean string values
             company_name = ensure_string(company_name)
             valuation = ensure_string(valuation)
@@ -825,30 +862,41 @@ def create_omnirex_tools() -> ToolRegistry:
             growth_rate = ensure_string(growth_rate)
             market_size = ensure_string(market_size)
             recommendation = ensure_string(recommendation).upper().strip()
-            
+
             # Normalize risk score
             try:
                 risk_score = float(risk_score)
                 risk_score = max(1, min(10, risk_score))
             except:
                 risk_score = 5.0
-            
+
             # Parse highlights - clean XML tags and HTML entities
             highlights = []
             if key_highlights:
                 if isinstance(key_highlights, list):
-                    highlights = [clean_highlight_text(ensure_string(h)) for h in key_highlights[:4]]
+                    highlights = [
+                        clean_highlight_text(ensure_string(h))
+                        for h in key_highlights[:4]
+                    ]
                 else:
                     h_str = ensure_string(key_highlights)
                     if "\n" in h_str:
-                        highlights = [clean_highlight_text(h.strip()) for h in h_str.split("\n") if h.strip()][:4]
+                        highlights = [
+                            clean_highlight_text(h.strip())
+                            for h in h_str.split("\n")
+                            if h.strip()
+                        ][:4]
                     elif "," in h_str:
-                        highlights = [clean_highlight_text(h.strip()) for h in h_str.split(",") if h.strip()][:4]
+                        highlights = [
+                            clean_highlight_text(h.strip())
+                            for h in h_str.split(",")
+                            if h.strip()
+                        ][:4]
                     else:
                         highlights = [clean_highlight_text(h_str)]
             # Filter out empty highlights after cleaning
             highlights = [h for h in highlights if h]
-            
+
             # Color scheme (OmniRex branding)
             DARK_BLUE = "#1a365d"
             GOLD = "#d4af37"
@@ -858,7 +906,7 @@ def create_omnirex_tools() -> ToolRegistry:
             GREEN = "#198754"
             RED = "#dc3545"
             ORANGE = "#fd7e14"
-            
+
             # Create figure (16:9 aspect for presentations)
             fig = plt.figure(figsize=(16, 9), facecolor=WHITE)
             ax = fig.add_axes([0, 0, 1, 1])
@@ -866,58 +914,67 @@ def create_omnirex_tools() -> ToolRegistry:
             ax.set_ylim(0, 9)
             ax.set_aspect("equal")
             ax.axis("off")
-            
+
             # === HEADER SECTION ===
             header_bg = FancyBboxPatch(
-                (0, 7.5), 16, 1.5,
+                (0, 7.5),
+                16,
+                1.5,
                 boxstyle="square,pad=0",
                 facecolor=DARK_BLUE,
-                edgecolor="none"
+                edgecolor="none",
             )
             ax.add_patch(header_bg)
-            
+
             # Company name
             ax.text(
-                0.5, 8.25,
+                0.5,
+                8.25,
                 company_name.upper(),
                 fontsize=32,
                 fontweight="bold",
                 color=WHITE,
                 va="center",
                 ha="left",
-                path_effects=[path_effects.withStroke(linewidth=1, foreground=DARK_BLUE)]
+                path_effects=[
+                    path_effects.withStroke(linewidth=1, foreground=DARK_BLUE)
+                ],
             )
-            
+
             # Subtitle
             ax.text(
-                0.5, 7.75,
+                0.5,
+                7.75,
                 "INVESTMENT DUE DILIGENCE DASHBOARD",
                 fontsize=12,
                 color=GOLD,
                 va="center",
                 ha="left",
-                style="italic"
+                style="italic",
             )
-            
+
             # Date on right
             ax.text(
-                15.5, 8.0,
+                15.5,
+                8.0,
                 datetime.now().strftime("%B %d, %Y"),
                 fontsize=11,
                 color=WHITE,
                 va="center",
-                ha="right"
+                ha="right",
             )
-            
+
             # === METRIC CARDS ROW ===
             def draw_metric_card(x, y, w, h, label, value, accent_color=GOLD):
                 """Draw a professional metric card."""
                 card = FancyBboxPatch(
-                    (x, y), w, h,
+                    (x, y),
+                    w,
+                    h,
                     boxstyle="round,pad=0.03,rounding_size=0.1",
                     facecolor=WHITE,
                     edgecolor="#e0e0e0",
-                    linewidth=1
+                    linewidth=1,
                 )
                 ax.add_patch(card)
                 # Top accent line
@@ -926,46 +983,65 @@ def create_omnirex_tools() -> ToolRegistry:
                     [y + h - 0.1, y + h - 0.1],
                     color=accent_color,
                     linewidth=4,
-                    solid_capstyle="round"
+                    solid_capstyle="round",
                 )
                 # Label
                 ax.text(
-                    x + w / 2, y + h - 0.45,
+                    x + w / 2,
+                    y + h - 0.45,
                     label.upper(),
                     fontsize=10,
                     color=MEDIUM_GRAY,
                     va="center",
                     ha="center",
-                    fontweight="medium"
+                    fontweight="medium",
                 )
                 # Value
                 ax.text(
-                    x + w / 2, y + h / 2 - 0.15,
+                    x + w / 2,
+                    y + h / 2 - 0.15,
                     value,
                     fontsize=24,
                     color=DARK_BLUE,
                     va="center",
                     ha="center",
-                    fontweight="bold"
+                    fontweight="bold",
                 )
-            
+
             # Draw 4 metric cards
             card_y = 5.5
             card_h = 1.8
             card_w = 3.5
             gap = 0.4
             start_x = 0.5
-            
+
             draw_metric_card(start_x, card_y, card_w, card_h, "Valuation", valuation)
-            draw_metric_card(start_x + card_w + gap, card_y, card_w, card_h, "ARR", arr, GREEN)
-            draw_metric_card(start_x + 2 * (card_w + gap), card_y, card_w, card_h, "YoY Growth", growth_rate, GREEN)
-            draw_metric_card(start_x + 3 * (card_w + gap), card_y, card_w, card_h, "Market Size (TAM)", market_size)
-            
+            draw_metric_card(
+                start_x + card_w + gap, card_y, card_w, card_h, "ARR", arr, GREEN
+            )
+            draw_metric_card(
+                start_x + 2 * (card_w + gap),
+                card_y,
+                card_w,
+                card_h,
+                "YoY Growth",
+                growth_rate,
+                GREEN,
+            )
+            draw_metric_card(
+                start_x + 3 * (card_w + gap),
+                card_y,
+                card_w,
+                card_h,
+                "Market Size (TAM)",
+                market_size,
+            )
+
             # === RISK GAUGE ===
             gauge_center_x = 3.5
             gauge_center_y = 3.2
             gauge_radius = 1.8
-            
+
             # Background arc with color segments
             theta_start = 180
             for i in range(10):
@@ -978,10 +1054,10 @@ def create_omnirex_tools() -> ToolRegistry:
                     width=0.4,
                     facecolor=segment_color,
                     edgecolor=WHITE,
-                    linewidth=1
+                    linewidth=1,
                 )
                 ax.add_patch(wedge)
-            
+
             # Needle
             needle_angle = 180 + (risk_score - 1) * 18
             needle_rad = np.radians(needle_angle)
@@ -995,63 +1071,67 @@ def create_omnirex_tools() -> ToolRegistry:
                 head_length=0.1,
                 fc=DARK_BLUE,
                 ec=DARK_BLUE,
-                linewidth=2
+                linewidth=2,
             )
-            
+
             # Center circle
             center_circle = Circle(
                 (gauge_center_x, gauge_center_y),
                 0.2,
                 facecolor=DARK_BLUE,
                 edgecolor=WHITE,
-                linewidth=2
+                linewidth=2,
             )
             ax.add_patch(center_circle)
-            
+
             # Risk score label
             ax.text(
-                gauge_center_x, gauge_center_y - 1.0,
+                gauge_center_x,
+                gauge_center_y - 1.0,
                 "RISK SCORE",
                 fontsize=10,
                 color=MEDIUM_GRAY,
                 va="center",
                 ha="center",
-                fontweight="medium"
+                fontweight="medium",
             )
             ax.text(
-                gauge_center_x, gauge_center_y - 1.4,
+                gauge_center_x,
+                gauge_center_y - 1.4,
                 f"{risk_score:.1f}/10",
                 fontsize=20,
                 color=DARK_BLUE,
                 va="center",
                 ha="center",
-                fontweight="bold"
+                fontweight="bold",
             )
-            
+
             # Risk labels
             ax.text(
-                gauge_center_x - gauge_radius - 0.3, gauge_center_y - 0.2,
+                gauge_center_x - gauge_radius - 0.3,
+                gauge_center_y - 0.2,
                 "LOW",
                 fontsize=8,
                 color=GREEN,
                 va="center",
                 ha="center",
-                fontweight="bold"
+                fontweight="bold",
             )
             ax.text(
-                gauge_center_x + gauge_radius + 0.3, gauge_center_y - 0.2,
+                gauge_center_x + gauge_radius + 0.3,
+                gauge_center_y - 0.2,
                 "HIGH",
                 fontsize=8,
                 color=RED,
                 va="center",
                 ha="center",
-                fontweight="bold"
+                fontweight="bold",
             )
-            
+
             # === RECOMMENDATION BADGE ===
             rec_x = 12.5
             rec_y = 2.5
-            
+
             # Determine badge color
             rec_upper = recommendation.upper()
             if rec_upper in ["BUY", "STRONG BUY", "INVEST", "FUND"]:
@@ -1060,96 +1140,103 @@ def create_omnirex_tools() -> ToolRegistry:
                 badge_color = ORANGE
             else:
                 badge_color = RED
-            
+
             # Badge background
             badge = FancyBboxPatch(
                 (rec_x - 1.8, rec_y - 0.8),
-                3.6, 2.2,
+                3.6,
+                2.2,
                 boxstyle="round,pad=0.05,rounding_size=0.2",
                 facecolor=badge_color,
-                edgecolor="none"
+                edgecolor="none",
             )
             ax.add_patch(badge)
-            
+
             # Badge text
             ax.text(
-                rec_x, rec_y + 0.45,
+                rec_x,
+                rec_y + 0.45,
                 "RECOMMENDATION",
                 fontsize=10,
                 color=WHITE,
                 va="center",
                 ha="center",
-                alpha=0.9
+                alpha=0.9,
             )
             ax.text(
-                rec_x, rec_y - 0.15,
+                rec_x,
+                rec_y - 0.15,
                 recommendation.upper(),
                 fontsize=28,
                 color=WHITE,
                 va="center",
                 ha="center",
-                fontweight="bold"
+                fontweight="bold",
             )
-            
+
             # === KEY HIGHLIGHTS SECTION ===
             if highlights:
                 hl_x = 6.5
                 hl_y = 4.0
-                
+
                 ax.text(
-                    hl_x, hl_y,
+                    hl_x,
+                    hl_y,
                     "KEY HIGHLIGHTS",
                     fontsize=11,
                     color=DARK_BLUE,
                     va="center",
                     ha="left",
-                    fontweight="bold"
+                    fontweight="bold",
                 )
-                
+
                 # Gold underline
                 ax.plot(
                     [hl_x, hl_x + 3],
                     [hl_y - 0.15, hl_y - 0.15],
                     color=GOLD,
-                    linewidth=2
+                    linewidth=2,
                 )
-                
+
                 for i, highlight in enumerate(highlights):
                     bullet_y = hl_y - 0.5 - (i * 0.5)
                     # Bullet point
                     bullet = Circle(
-                        (hl_x + 0.1, bullet_y),
-                        0.08,
-                        facecolor=GOLD,
-                        edgecolor="none"
+                        (hl_x + 0.1, bullet_y), 0.08, facecolor=GOLD, edgecolor="none"
                     )
                     ax.add_patch(bullet)
                     # Text - truncate to 40 chars max to prevent overflow into recommendation badge
-                    display_text = highlight[:40] + "..." if len(highlight) > 40 else highlight
+                    display_text = (
+                        highlight[:40] + "..." if len(highlight) > 40 else highlight
+                    )
                     ax.text(
-                        hl_x + 0.35, bullet_y,
+                        hl_x + 0.35,
+                        bullet_y,
                         display_text,
                         fontsize=10,
                         color=DARK_BLUE,
                         va="center",
-                        ha="left"
+                        ha="left",
                     )
-            
+
             # === FOOTER ===
             ax.plot([0.5, 15.5], [0.6, 0.6], color="#e0e0e0", linewidth=1)
             ax.text(
-                8, 0.3,
+                8,
+                0.3,
                 "CONFIDENTIAL • FOR INVESTMENT PURPOSES ONLY • POWERED BY OMNIREXFLORA LABS",
                 fontsize=9,
                 color=MEDIUM_GRAY,
                 va="center",
                 ha="center",
-                style="italic"
+                style="italic",
             )
-            
+
             # Save with high DPI
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"omnirex_dashboard_{company_name.replace(' ', '_')}_{timestamp}.png"
+            filename = (
+                f"omnirex_dashboard_{company_name.replace(' ', '_')}_{timestamp}.png"
+            )
             filepath = os.path.join(get_output_dir(), filename)
             plt.savefig(
                 filepath,
@@ -1157,10 +1244,10 @@ def create_omnirex_tools() -> ToolRegistry:
                 bbox_inches="tight",
                 facecolor=WHITE,
                 edgecolor="none",
-                pad_inches=0.2
+                pad_inches=0.2,
             )
             plt.close()
-            
+
             logger.info(f"Professional infographic generated: {filepath}")
             return {
                 "status": "success",
@@ -1174,13 +1261,16 @@ def create_omnirex_tools() -> ToolRegistry:
                         "growth": growth_rate,
                         "market_size": market_size,
                         "risk_score": risk_score,
-                        "recommendation": recommendation
-                    }
-                }
+                        "recommendation": recommendation,
+                    },
+                },
             }
         except Exception as e:
             logger.error(f"Error creating infographic: {e}")
-            return {"status": "error", "message": f"Error creating infographic: {str(e)}"}
+            return {
+                "status": "error",
+                "message": f"Error creating infographic: {str(e)}",
+            }
 
     # =========================================================================
     # TOOL 3: FINANCIAL CHART
@@ -1223,26 +1313,32 @@ def create_omnirex_tools() -> ToolRegistry:
             "properties": {
                 "company_name": {
                     "type": "string",
-                    "description": "Name of the company for chart title."
+                    "description": "Name of the company for chart title.",
                 },
                 "current_arr_m": {
                     "type": "number",
-                    "description": "Current ARR in millions (e.g., 1.2 means $1.2M)."
+                    "description": "Current ARR in millions (e.g., 1.2 means $1.2M).",
                 },
                 "bear_rates": {
                     "type": "string",
-                    "description": "Comma-separated YoY multipliers for bear case."
+                    "description": "Comma-separated YoY multipliers for bear case.",
                 },
                 "base_rates": {
                     "type": "string",
-                    "description": "Comma-separated YoY multipliers for base case."
+                    "description": "Comma-separated YoY multipliers for base case.",
                 },
                 "bull_rates": {
                     "type": "string",
-                    "description": "Comma-separated YoY multipliers for bull case."
-                }
+                    "description": "Comma-separated YoY multipliers for bull case.",
+                },
             },
-            "required": ["company_name", "current_arr_m", "bear_rates", "base_rates", "bull_rates"],
+            "required": [
+                "company_name",
+                "current_arr_m",
+                "bear_rates",
+                "base_rates",
+                "bull_rates",
+            ],
             "additionalProperties": False,
         },
     )
@@ -1256,8 +1352,9 @@ def create_omnirex_tools() -> ToolRegistry:
         """Generate professional revenue projection chart."""
         if not HAS_MATPLOTLIB:
             return {"status": "error", "message": "Matplotlib is not installed."}
-        
+
         try:
+
             def parse_rates(rates_input: Union[str, list]) -> List[float]:
                 if isinstance(rates_input, list):
                     return [float(x) for x in rates_input]
@@ -1265,50 +1362,74 @@ def create_omnirex_tools() -> ToolRegistry:
                 if "," in s:
                     return [float(x.strip()) for x in s.split(",")]
                 return [float(x.strip()) for x in s.split()]
-            
+
             def project_arr(start: float, rates: List[float]) -> List[float]:
                 arr = [start]
                 for rate in rates:
                     arr.append(arr[-1] * rate)
                 return arr
-            
+
             company_name = ensure_string(company_name)
             current = float(current_arr_m)
-            
+
             bear = parse_rates(bear_rates)
             base = parse_rates(base_rates)
             bull = parse_rates(bull_rates)
-            
+
             start_year = datetime.now().year
             years = list(range(start_year, start_year + len(base) + 1))
-            
+
             bear_arr = project_arr(current, bear)
             base_arr = project_arr(current, base)
             bull_arr = project_arr(current, bull)
-            
+
             # Professional chart styling
             plt.style.use("seaborn-v0_8-whitegrid")
             fig, ax = plt.subplots(figsize=(10, 6))
-            
+
             # Plot all three scenarios
-            ax.plot(years, bear_arr, "o-", color="#dc2626", linewidth=2, markersize=8, label="Bear Case")
-            ax.plot(years, base_arr, "s-", color="#1a365d", linewidth=3, markersize=10, label="Base Case")
-            ax.plot(years, bull_arr, "^-", color="#16a34a", linewidth=2, markersize=8, label="Bull Case")
-            
+            ax.plot(
+                years,
+                bear_arr,
+                "o-",
+                color="#dc2626",
+                linewidth=2,
+                markersize=8,
+                label="Bear Case",
+            )
+            ax.plot(
+                years,
+                base_arr,
+                "s-",
+                color="#1a365d",
+                linewidth=3,
+                markersize=10,
+                label="Base Case",
+            )
+            ax.plot(
+                years,
+                bull_arr,
+                "^-",
+                color="#16a34a",
+                linewidth=2,
+                markersize=8,
+                label="Bull Case",
+            )
+
             # Shaded confidence region
             ax.fill_between(years, bear_arr, bull_arr, alpha=0.1, color="#1a365d")
-            
+
             # Styling
             ax.set_title(
                 f"{company_name} - Revenue Projection Analysis",
                 fontsize=16,
                 fontweight="bold",
-                color="#1a365d"
+                color="#1a365d",
             )
             ax.set_xlabel("Year", fontsize=12)
             ax.set_ylabel("ARR ($ Millions)", fontsize=12)
             ax.legend(loc="upper left", fontsize=11)
-            
+
             # Value annotations for base case
             for x, y in zip(years, base_arr):
                 ax.annotate(
@@ -1318,19 +1439,19 @@ def create_omnirex_tools() -> ToolRegistry:
                     xytext=(0, 10),
                     ha="center",
                     fontsize=9,
-                    color="#1a365d"
+                    color="#1a365d",
                 )
-            
+
             ax.grid(True, linestyle="--", alpha=0.7)
             plt.tight_layout()
-            
+
             # Save chart
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"omnirex_chart_{company_name.replace(' ', '_')}_{timestamp}.png"
             filepath = os.path.join(get_output_dir(), filename)
             plt.savefig(filepath, dpi=150, bbox_inches="tight", facecolor="white")
             plt.close()
-            
+
             return {
                 "status": "success",
                 "message": f"Chart generated: {filepath}",
@@ -1340,8 +1461,8 @@ def create_omnirex_tools() -> ToolRegistry:
                         f"year_{len(base)}_bear": f"${bear_arr[-1]:.1f}M",
                         f"year_{len(base)}_base": f"${base_arr[-1]:.1f}M",
                         f"year_{len(base)}_bull": f"${bull_arr[-1]:.1f}M",
-                    }
-                }
+                    },
+                },
             }
         except Exception as e:
             logger.error(f"Error generating chart: {e}")
@@ -1377,23 +1498,37 @@ def create_omnirex_tools() -> ToolRegistry:
         inputSchema={
             "type": "object",
             "properties": {
-                "company_name": {"type": "string", "description": "Company being evaluated."},
-                "recommendation": {"type": "string", "description": "FUND, CONDITIONAL, or PASS."},
-                "confidence": {"type": "number", "description": "Confidence score 0-100."},
-                "content": {"type": "string", "description": "Full memo content in markdown."}
+                "company_name": {
+                    "type": "string",
+                    "description": "Company being evaluated.",
+                },
+                "recommendation": {
+                    "type": "string",
+                    "description": "FUND, CONDITIONAL, or PASS.",
+                },
+                "confidence": {
+                    "type": "number",
+                    "description": "Confidence score 0-100.",
+                },
+                "content": {
+                    "type": "string",
+                    "description": "Full memo content in markdown.",
+                },
             },
             "required": ["company_name", "recommendation", "confidence", "content"],
             "additionalProperties": False,
         },
     )
-    def save_evaluation_memo(company_name: str, recommendation: str, confidence: float, content: str) -> dict:
+    def save_evaluation_memo(
+        company_name: str, recommendation: str, confidence: float, content: str
+    ) -> dict:
         """Save investment evaluation memo."""
         content = ensure_string(content)
         company_name = ensure_string(company_name)
-        
+
         memo = f"""# Investment Evaluation: {company_name}
 
-**Date:** {datetime.now().strftime('%B %d, %Y')}
+**Date:** {datetime.now().strftime("%B %d, %Y")}
 **Recommendation:** {recommendation.upper()}
 **Confidence:** {confidence}%
 
@@ -1405,17 +1540,17 @@ def create_omnirex_tools() -> ToolRegistry:
 
 *Generated by OmniRexFlora DeepAgent • Confidential*
 """
-        
+
         filename = f"omnirex_memo_{company_name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
         filepath = os.path.join(get_output_dir(), filename)
-        
+
         with open(filepath, "w") as f:
             f.write(memo)
-        
+
         return {
             "status": "success",
             "message": f"Memo saved: {filepath}",
-            "data": {"filepath": filepath}
+            "data": {"filepath": filepath},
         }
 
     # =========================================================================
@@ -1451,23 +1586,20 @@ def create_omnirex_tools() -> ToolRegistry:
                 "competitors": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "List of 3-5 competitors."
+                    "description": "List of 3-5 competitors.",
                 },
                 "key_features": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Features to compare."
-                }
+                    "description": "Features to compare.",
+                },
             },
             "required": ["company_name", "sector", "competitors", "key_features"],
             "additionalProperties": False,
         },
     )
     def analyze_competitor_landscape(
-        company_name: str,
-        sector: str,
-        competitors: List[str],
-        key_features: List[str]
+        company_name: str, sector: str, competitors: List[str], key_features: List[str]
     ) -> dict:
         """Generate competitive landscape analysis."""
         findings = []
@@ -1475,26 +1607,33 @@ def create_omnirex_tools() -> ToolRegistry:
             q = f"{comp} vs {company_name} features {sector} Africa"
             results = _tavily_search(q, max_results=3)
             if results:
-                findings.append(f"### {comp} Analysis (Live Data):\n" + "\n".join(
-                    f"- {r.get('title', 'Untitled')}: {r.get('content', '')[:200]}..."
-                    for r in results
-                ))
+                findings.append(
+                    f"### {comp} Analysis (Live Data):\n"
+                    + "\n".join(
+                        f"- {r.get('title', 'Untitled')}: {r.get('content', '')[:200]}..."
+                        for r in results
+                    )
+                )
             else:
                 findings.append(f"### {comp} Analysis:\n(No live data found)")
-            
+
         research_text = "\n\n".join(findings)
-        
+
         # Generate Template Table
         md_table = f"### Competitive Landscape: {sector}\n\n"
         md_table += f"| Feature | {company_name} | " + " | ".join(competitors) + " |\n"
         md_table += "|---|---|" + "---|" * len(competitors) + "\n"
         for feature in key_features:
-            md_table += f"| {feature} | TBD | " + " | ".join(["TBD"] * len(competitors)) + " |\n"
-        
+            md_table += (
+                f"| {feature} | TBD | "
+                + " | ".join(["TBD"] * len(competitors))
+                + " |\n"
+            )
+
         return {
             "status": "success",
             "data": f"## RESEARCH FINDINGS\n\n{research_text}\n\n## TEMPLATE\n\n{md_table}",
-            "message": "Use findings to fill the template table."
+            "message": "Use findings to fill the template table.",
         }
 
     # =========================================================================
@@ -1525,8 +1664,11 @@ def create_omnirex_tools() -> ToolRegistry:
         inputSchema={
             "type": "object",
             "properties": {
-                "country": {"type": "string", "description": "Target country (e.g., Kenya, Nigeria)."},
-                "sector": {"type": "string", "description": "Industry sector."}
+                "country": {
+                    "type": "string",
+                    "description": "Target country (e.g., Kenya, Nigeria).",
+                },
+                "sector": {"type": "string", "description": "Industry sector."},
             },
             "required": ["country", "sector"],
             "additionalProperties": False,
@@ -1537,7 +1679,7 @@ def create_omnirex_tools() -> ToolRegistry:
         year = datetime.now().year
         q = f"{country} macroeconomic risk {sector} {year} currency regulatory infrastructure"
         results = _tavily_search(q, max_results=5)
-        
+
         if results:
             context = "\n".join(
                 f"- {r.get('title', 'Untitled')}: {r.get('content', '')[:200]}..."
@@ -1545,13 +1687,36 @@ def create_omnirex_tools() -> ToolRegistry:
             )
         else:
             context = "No live data available."
-        
+
         # Simple keyword heuristics
         c = context.lower()
-        fx = "High" if any(x in c for x in ["depreciation", "volatility", "crash", "weakening", "shortage"]) else "Medium"
-        reg = "High" if any(x in c for x in ["uncertainty", "ban", "crackdown", "policy shift"]) else "Low"
-        infra = "High" if any(x in c for x in ["outage", "blackout", "load shedding", "grid failure"]) else "Medium"
-        
+        fx = (
+            "High"
+            if any(
+                x in c
+                for x in [
+                    "depreciation",
+                    "volatility",
+                    "crash",
+                    "weakening",
+                    "shortage",
+                ]
+            )
+            else "Medium"
+        )
+        reg = (
+            "High"
+            if any(x in c for x in ["uncertainty", "ban", "crackdown", "policy shift"])
+            else "Low"
+        )
+        infra = (
+            "High"
+            if any(
+                x in c for x in ["outage", "blackout", "load shedding", "grid failure"]
+            )
+            else "Medium"
+        )
+
         report = f"""## Macro Risk Assessment: {country} ({year})
 
 ### Live News Analysis
@@ -1568,15 +1733,15 @@ def create_omnirex_tools() -> ToolRegistry:
 ### Investment Implications
 {"⚠️ **HIGH RISK ENVIRONMENT** - Proceed with caution" if fx == "High" or reg == "High" else "✅ **MODERATE RISK** - Standard due diligence recommended"}
 """
-        
+
         return {
             "status": "success",
             "risk_profile": report,
             "risk_data": {
                 "FX": {"level": fx, "context": "Live Search Analysis"},
                 "Regulatory": {"level": reg, "context": "Live Search Analysis"},
-                "Infrastructure": {"level": infra, "context": "Live Search Analysis"}
-            }
+                "Infrastructure": {"level": infra, "context": "Live Search Analysis"},
+            },
         }
 
     return registry

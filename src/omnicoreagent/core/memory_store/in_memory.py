@@ -7,7 +7,6 @@ from omnicoreagent.core.utils import logger, utc_now_str
 from omnicoreagent.core.summarizer.tokenizer import count_message_tokens
 from omnicoreagent.core.summarizer.summarizer_engine import (
     apply_summarization_logic,
-
 )
 from omnicoreagent.core.summarizer.summarizer_types import SummaryConfig
 import copy
@@ -98,7 +97,8 @@ class InMemoryStore(AbstractMemoryStore):
             if session_id not in self.sessions_history:
                 self.sessions_history[session_id] = []
             messages = [
-                msg for msg in self.sessions_history[session_id]
+                msg
+                for msg in self.sessions_history[session_id]
                 if msg.get("status", "active") == "active"
             ]
 
@@ -200,7 +200,8 @@ class InMemoryStore(AbstractMemoryStore):
             for session_id in self.sessions_history:
                 if retention_policy == "delete":
                     self.sessions_history[session_id] = [
-                        msg for msg in self.sessions_history[session_id]
+                        msg
+                        for msg in self.sessions_history[session_id]
                         if msg.get("id") not in message_ids_set
                     ]
                 else:
@@ -214,4 +215,3 @@ class InMemoryStore(AbstractMemoryStore):
             f"{'Deleted' if retention_policy == 'delete' else 'Marked inactive'} "
             f"{len(message_ids)} summarized messages"
         )
-

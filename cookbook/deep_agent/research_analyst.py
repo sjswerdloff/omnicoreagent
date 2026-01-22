@@ -28,18 +28,18 @@ You conduct thorough research, create structured analyses, and provide strategic
         },
         project_name="market_research",
     )
-    
+
     await agent.initialize()
     print(f"✓ Research Agent initialized")
-    
+
     result = await agent.run("""
     Analyze the top 3 cloud providers (AWS, Azure, GCP) for AI workloads.
     
     Research their AI/ML offerings, then create a comparison and recommendation.
     """)
-    
+
     print(f"\n📋 Result:\n{result['response'][:1000]}...")
-    
+
     await agent.cleanup()
 
 

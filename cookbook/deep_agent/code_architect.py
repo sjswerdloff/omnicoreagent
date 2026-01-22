@@ -28,10 +28,10 @@ You research best practices, create detailed designs, and provide implementation
         },
         project_name="auth_system",
     )
-    
+
     await agent.initialize()
     print(f"✓ Architect initialized")
-    
+
     result = await agent.run("""
     Design an authentication system for a SaaS application.
     
@@ -42,9 +42,9 @@ You research best practices, create detailed designs, and provide implementation
     
     Research best practices, then create a detailed plan.
     """)
-    
+
     print(f"\n📋 Result:\n{result['response'][:1200]}...")
-    
+
     await agent.cleanup()
 
 

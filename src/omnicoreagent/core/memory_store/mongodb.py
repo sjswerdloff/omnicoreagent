@@ -142,7 +142,7 @@ class MongoDb(AbstractMemoryStore):
             if summarized_ids and summary_msg:
                 summary_id = str(uuid.uuid4())
                 summary_msg["id"] = summary_id
-                
+
                 summary_msg_doc = {
                     "id": summary_id,
                     "role": summary_msg["role"],
@@ -158,7 +158,7 @@ class MongoDb(AbstractMemoryStore):
                 async def _background_persist_summary():
                     try:
                         await self._ensure_connected()
-                        
+
                         await self.collection.insert_one(summary_msg_doc)
 
                         await self.mark_messages_summarized(
@@ -180,6 +180,7 @@ class MongoDb(AbstractMemoryStore):
         except Exception as e:
             logger.error(f"Failed to get messages: {e}")
             return []
+
     async def clear_memory(
         self, session_id: str = None, agent_name: str = None
     ) -> None:
@@ -233,4 +234,3 @@ class MongoDb(AbstractMemoryStore):
 
         except Exception as e:
             logger.error(f"Failed to mark messages as summarized: {e}")
-

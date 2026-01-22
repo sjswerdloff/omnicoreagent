@@ -68,9 +68,7 @@ async def prepare_history_sliding_window(
     raw_messages = messages[-raw_keep_count:]
     messages_to_summarize = messages[:-raw_keep_count]
 
-    summarized_ids = [
-        m.get("id") for m in messages_to_summarize if m.get("id")
-    ]
+    summarized_ids = [m.get("id") for m in messages_to_summarize if m.get("id")]
 
     logger.debug(
         f"Sliding window: summarizing {len(messages_to_summarize)} messages, "
@@ -91,7 +89,7 @@ async def prepare_history_sliding_window(
             "type": "history_summary",
             "summarizes": summarized_ids,
             "agent_name": agent_name if agent_name else "Unknown Agent",
-        }
+        },
     }
 
     working_memory = [summary_message] + raw_messages
@@ -158,13 +156,11 @@ async def prepare_history_token_budget(
         raw_tokens += msg_tokens
 
     if raw_messages:
-        messages_to_summarize = messages[:-len(raw_messages)]
+        messages_to_summarize = messages[: -len(raw_messages)]
     else:
         messages_to_summarize = messages
 
-    summarized_ids = [
-        m.get("id") for m in messages_to_summarize if m.get("id")
-    ]
+    summarized_ids = [m.get("id") for m in messages_to_summarize if m.get("id")]
 
     logger.debug(
         f"Token budget: summarizing {len(messages_to_summarize)} messages "
@@ -192,16 +188,14 @@ async def prepare_history_token_budget(
             "type": "history_summary",
             "summarizes": summarized_ids,
             "agent_name": agent_name if agent_name else "Unknown Agent",
-        }
+        },
     }
 
     working_memory = [summary_message] + raw_messages
 
     final_tokens = count_message_tokens(working_memory, model)
     if final_tokens > max_tokens:
-        logger.warning(
-            f"Final token count {final_tokens} exceeds budget {max_tokens}"
-        )
+        logger.warning(f"Final token count {final_tokens} exceeds budget {max_tokens}")
 
     return working_memory, summarized_ids
 
@@ -261,10 +255,10 @@ async def apply_summarization_logic(
     """
     mode = memory_config.get("mode", "token_budget")
     value = memory_config.get("value")
-    
+
     if value is None:
         return messages, None, []
-        
+
     if not (summary_config and summary_config.enabled and summarize_fn):
         if mode.lower() == "sliding_window":
             return messages[-value:], None, []
@@ -274,7 +268,7 @@ async def apply_summarization_logic(
 
     summarized_ids = []
     working_memory = messages
-    
+
     if mode.lower() == "sliding_window":
         working_memory, summarized_ids = await prepare_history_sliding_window(
             messages=messages,
@@ -291,13 +285,14 @@ async def apply_summarization_logic(
             summarize_fn=summarize_fn,
             summary_config=summary_config,
         )
-    
+
     summary_to_store = None
     if summarized_ids:
         potential_summary = working_memory[0] if working_memory else None
         if (
-            potential_summary 
-            and potential_summary.get("msg_metadata", {}).get("type") == "history_summary"
+            potential_summary
+            and potential_summary.get("msg_metadata", {}).get("type")
+            == "history_summary"
         ):
             summary_to_store = potential_summary
     return working_memory, summary_to_store, summarized_ids

@@ -62,12 +62,11 @@ class AgentConfig:
     enable_advanced_tool_use: bool = False
     enable_agent_skills: bool = False
     memory_config: dict = field(
-        default_factory=lambda: {"mode": "sliding_window",
-        "value": 10000,
-        "summary": {
-            "enabled": False,
-            "retention_policy": "keep"
-        }}
+        default_factory=lambda: {
+            "mode": "sliding_window",
+            "value": 10000,
+            "summary": {"enabled": False, "retention_policy": "keep"},
+        }
     )
     memory_tool_backend: str = None
     guardrail_config: Optional[Dict[str, Any]] = None

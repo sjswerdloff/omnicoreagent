@@ -37,10 +37,7 @@ DEFAULT_DEEP_AGENT_CONFIG = {
     "memory_config": {
         "mode": "sliding_window",
         "value": 15000,
-        "summary": {
-            "enabled": True,
-            "retention_policy": "keep"
-        }
+        "summary": {"enabled": True, "retention_policy": "keep"},
     },
     "context_management": {
         "enabled": True,
@@ -63,17 +60,17 @@ DEFAULT_DEEP_AGENT_CONFIG = {
 class DeepAgent:
     """
     General-purpose agent with multi-agent orchestration.
-    
+
     Like OmniCoreAgent, but with:
     1. Custom DeepAgentPromptBuilder (clean prompt structure)
     2. Subagent spawning tools
     3. Full agent_config benefits (context_management, tool_offload, etc.)
     4. Memory_tool_backend always local (required for orchestration)
-    
+
     NOTE: Task paths for memory organization are chosen dynamically by the
     lead agent when it spawns subagents - not hardcoded in base prompt.
     """
-    
+
     def __init__(
         self,
         name: str,
@@ -89,7 +86,7 @@ class DeepAgent:
     ):
         """
         Initialize DeepAgent.
-        
+
         Args:
             name: Agent name
             system_instruction: What this agent does (defines domain)
@@ -111,38 +108,44 @@ class DeepAgent:
         self.memory_router = memory_router or MemoryRouter("in_memory")
         self.event_router = event_router or EventRouter("in_memory")
         self.debug = debug
-        
+
         self.agent_config = self._build_agent_config(agent_config)
-        
+
         self._prompt_builder = DeepAgentPromptBuilder()
-        
+
         self._agent: Optional[OmniCoreAgent] = None
         self._subagent_factory: Optional[SubagentFactory] = None
         self._initialized = False
-    
-    def _build_agent_config(self, user_config: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+
+    def _build_agent_config(
+        self, user_config: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """
         Build agent config by merging user config with good defaults.
-        
+
         User can override most settings, but memory_tool_backend is always "local".
         """
         config = DEFAULT_DEEP_AGENT_CONFIG.copy()
-        
+
         if user_config:
             for key, value in user_config.items():
-                if isinstance(value, dict) and key in config and isinstance(config[key], dict):
+                if (
+                    isinstance(value, dict)
+                    and key in config
+                    and isinstance(config[key], dict)
+                ):
                     config[key] = {**config[key], **value}
                 else:
                     config[key] = value
-        
+
         config["memory_tool_backend"] = "local"
-        
+
         return config
-    
+
     async def initialize(self):
         """
         Initialize the DeepAgent.
-        
+
         Creates:
         - SubagentFactory for spawning subagents (with full agent_config)
         - Combined tools registry (user tools + subagent tools)
@@ -150,9 +153,9 @@ class DeepAgent:
         """
         if self._initialized:
             return
-        
+
         logger.info(f"DeepAgent '{self.name}': Initializing...")
-        
+
         self._subagent_factory = SubagentFactory(
             base_model_config=self.model_config,
             mcp_tools=self.mcp_tools,
@@ -163,10 +166,10 @@ class DeepAgent:
             memory_router=self.memory_router,
             debug=self.debug,
         )
-        
+
         tools = self.user_local_tools or ToolRegistry()
         build_subagent_tools(self._subagent_factory, tools)
-        
+
         self._agent = OmniCoreAgent(
             name=self.name,
             system_instruction=self.user_instruction,
@@ -180,13 +183,13 @@ class DeepAgent:
             prompt_builder=self._prompt_builder,
             debug=self.debug,
         )
-        
+
         if self.mcp_tools:
             await self._agent.connect_mcp_servers()
-        
+
         self._initialized = True
         logger.info(f"DeepAgent '{self.name}': Initialization complete")
-    
+
     async def run(
         self,
         query: str,
@@ -194,38 +197,38 @@ class DeepAgent:
     ) -> Dict[str, Any]:
         """
         Run the agent with a query.
-        
+
         Args:
             query: Task or question
             session_id: Optional session ID
-            
+
         Returns:
             Agent response
         """
         if not self._initialized:
             await self.initialize()
-        
+
         session_id = session_id or str(uuid.uuid4())
         return await self._agent.run(query, session_id=session_id)
-    
+
     async def cleanup(self):
         """Clean up all resources."""
         logger.info(f"DeepAgent '{self.name}': Cleaning up...")
-        
+
         if self._subagent_factory:
             await self._subagent_factory.cleanup()
-        
+
         if self._agent:
             await self._agent.cleanup()
-        
+
         self._initialized = False
         logger.info(f"DeepAgent '{self.name}': Cleanup complete")
-    
+
     async def connect_mcp_servers(self):
         """Connect MCP servers."""
         if self._agent:
             await self._agent.connect_mcp_servers()
-    
+
     async def cleanup_mcp_servers(self):
         """Disconnect MCP servers."""
         if self._agent:
@@ -236,12 +239,12 @@ class DeepAgent:
         if self._agent:
             return await self._agent.list_all_available_tools()
         return []
-    
+
     @property
     def is_initialized(self) -> bool:
         """Check if the agent is initialized."""
         return self._initialized
-    
+
     @property
     def prompt_builder(self) -> DeepAgentPromptBuilder:
         """Get the prompt builder."""

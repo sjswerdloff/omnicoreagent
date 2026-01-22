@@ -20,13 +20,13 @@ from omnicoreagent.core.utils import logger
 class SubagentFactory:
     """
     Factory for creating focused subagents.
-    
+
     Subagents:
     - Inherit parent's model config, tools, AND agent_config
     - Get focused task via prompt
     - Write results to memory (not return through context)
     """
-    
+
     def __init__(
         self,
         base_model_config: Dict[str, Any],
@@ -40,7 +40,7 @@ class SubagentFactory:
     ):
         """
         Initialize factory with shared configuration.
-        
+
         Args:
             base_model_config: Model config all subagents use
             mcp_tools: MCP tools subagents can use
@@ -60,23 +60,23 @@ class SubagentFactory:
         self.agent_config = agent_config or {}
         self.prompt_builder = prompt_builder
         self._active_subagents: Dict[str, OmniCoreAgent] = {}
-    
+
     def _build_subagent_config(self) -> Dict[str, Any]:
         """
         Build agent_config for subagents inheriting parent's config.
-        
+
         Subagents get full config but with some adjustments:
         - Fewer max_steps (focused task)
         - memory_tool_backend always local
         """
         config = self.agent_config.copy()
-        
+
         config["max_steps"] = min(config.get("max_steps", 15), 15)
-        
+
         config["memory_tool_backend"] = "local"
-        
+
         return config
-    
+
     def create_subagent(
         self,
         name: str,
@@ -86,13 +86,13 @@ class SubagentFactory:
     ) -> OmniCoreAgent:
         """
         Create a focused subagent.
-        
+
         Args:
             name: Subagent identifier
             role: What this subagent specializes in
             task: Specific task to complete
             output_path: Memory path for writing findings
-            
+
         Returns:
             Configured OmniCoreAgent ready to run
         """
@@ -115,9 +115,9 @@ When you have completed your investigation:
 2. Confirm you saved the findings
 3. Return a brief summary of what you found
 """
-        
+
         subagent_config = self._build_subagent_config()
-        
+
         agent = OmniCoreAgent(
             name=f"subagent_{name}",
             system_instruction=instruction,
@@ -129,10 +129,10 @@ When you have completed your investigation:
             memory_router=self.memory_router,
             debug=self.debug,
         )
-        
+
         self._active_subagents[name] = agent
         return agent
-    
+
     async def run_subagent(
         self,
         name: str,
@@ -144,25 +144,25 @@ When you have completed your investigation:
         Create and run a subagent, return result.
         """
         logger.info(f"Spawning subagent '{name}' for task: {task[:50]}...")
-        
+
         agent = self.create_subagent(
             name=name,
             role=role,
             task=task,
             output_path=output_path,
         )
-        
+
         try:
             if self.mcp_tools:
                 await agent.connect_mcp_servers()
-            
+
             result = await agent.run(str(task))
             response = result.get("response", str(result)) or ""
             if not isinstance(response, str):
                 response = str(response)
-            
+
             logger.info(f"Subagent '{name}' completed task")
-            
+
             return {
                 "status": "success",
                 "data": {
@@ -172,22 +172,22 @@ When you have completed your investigation:
                 },
                 "message": f"Subagent '{name}' completed. Findings saved to {output_path}",
             }
-            
+
         except Exception as e:
             error_msg = str(e)
             logger.error(f"Subagent '{name}' failed: {error_msg}")
-            
+
             return {
                 "status": "error",
                 "data": {"subagent_name": name, "error": error_msg},
                 "message": f"Subagent '{name}' failed: {error_msg}",
             }
-            
+
         finally:
             await agent.cleanup()
             if name in self._active_subagents:
                 del self._active_subagents[name]
-    
+
     async def run_parallel_subagents(
         self,
         subagent_specs: List[Dict[str, str]],
@@ -201,32 +201,36 @@ When you have completed your investigation:
                 "data": {"results": []},
                 "message": "No subagents to spawn",
             }
-        
+
         logger.info(f"Spawning {len(subagent_specs)} subagents in parallel")
-        
+
         tasks = [
             self.run_subagent(
                 name=spec.get("name", f"subagent_{i}"),
                 role=spec.get("role", "Assistant"),
                 task=spec.get("task", ""),
-                output_path=spec.get("output_path", f"/memories/tasks/default/subagent_{i}/"),
+                output_path=spec.get(
+                    "output_path", f"/memories/tasks/default/subagent_{i}/"
+                ),
             )
             for i, spec in enumerate(subagent_specs)
         ]
-        
+
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         processed_results = []
         successful = 0
         failed = 0
-        
+
         for i, result in enumerate(results):
             if isinstance(result, Exception):
-                processed_results.append({
-                    "subagent_name": subagent_specs[i].get("name", f"subagent_{i}"),
-                    "status": "error",
-                    "error": str(result),
-                })
+                processed_results.append(
+                    {
+                        "subagent_name": subagent_specs[i].get("name", f"subagent_{i}"),
+                        "status": "error",
+                        "error": str(result),
+                    }
+                )
                 failed += 1
             else:
                 processed_results.append(result.get("data", {}))
@@ -234,9 +238,13 @@ When you have completed your investigation:
                     successful += 1
                 else:
                     failed += 1
-        
+
         return {
-            "status": "success" if failed == 0 else "partial" if successful > 0 else "error",
+            "status": "success"
+            if failed == 0
+            else "partial"
+            if successful > 0
+            else "error",
             "data": {
                 "total": len(subagent_specs),
                 "successful": successful,
@@ -245,7 +253,7 @@ When you have completed your investigation:
             },
             "message": f"Completed {successful}/{len(subagent_specs)} subagents successfully",
         }
-    
+
     async def cleanup(self):
         """Clean up all active subagents."""
         for name, agent in list(self._active_subagents.items()):
@@ -263,7 +271,7 @@ def build_subagent_tools(
     """
     Register subagent spawning tools with the given registry.
     """
-    
+
     @registry.register_tool(
         name="spawn_subagent",
         description="""
@@ -342,7 +350,7 @@ def build_subagent_tools(
     ) -> Dict[str, Any]:
         """
         Spawn a specialized subagent to work on a focused task.
-        
+
         Parameters
         ----------
         name : str
@@ -353,7 +361,7 @@ def build_subagent_tools(
             The specific task to complete
         output_path : str
             Memory path where subagent writes findings
-            
+
         Returns
         -------
         dict
@@ -369,7 +377,7 @@ def build_subagent_tools(
             task=task,
             output_path=output_path,
         )
-    
+
     @registry.register_tool(
         name="spawn_parallel_subagents",
         description="""
@@ -418,12 +426,12 @@ def build_subagent_tools(
     ) -> Dict[str, Any]:
         """
         Spawn multiple subagents to work in parallel.
-        
+
         Parameters
         ----------
         subagents_json : str
             JSON array of subagent specs with name, role, task, output_path
-            
+
         Returns
         -------
         dict
@@ -439,7 +447,7 @@ def build_subagent_tools(
                 subagent_specs = subagents_json
             else:
                 subagent_specs = json.loads(subagents_json)
-                
+
             if not isinstance(subagent_specs, list):
                 return {
                     "status": "error",
@@ -452,5 +460,5 @@ def build_subagent_tools(
                 "data": None,
                 "message": f"Invalid JSON: {str(e)}",
             }
-        
+
         return await factory.run_parallel_subagents(subagent_specs)

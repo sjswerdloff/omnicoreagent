@@ -92,8 +92,7 @@ class TestSummaryConfig:
     def test_retention_policy_delete(self):
         """Test delete retention policy."""
         config = SummaryConfig(
-            enabled=True,
-            retention_policy=SummaryRetentionPolicy.DELETE
+            enabled=True, retention_policy=SummaryRetentionPolicy.DELETE
         )
         assert config.retention_policy == SummaryRetentionPolicy.DELETE
 
@@ -112,7 +111,7 @@ class TestSummaryTypes:
         """Test identifying a summary message."""
         msg = {
             "content": "Summary text",
-            "msg_metadata": {"type": "history_summary", "summarizes": ["id1", "id2"]}
+            "msg_metadata": {"type": "history_summary", "summarizes": ["id1", "id2"]},
         }
         assert is_summary_message(msg) is True
 
@@ -238,9 +237,18 @@ class TestTokenBudgetSummarizer:
         """Test summarization when over budget and enabled."""
         # Create messages that will definitely exceed budget
         messages = [
-            {"id": "1", "content": "This is the first message with lots of text that takes up many tokens."},
-            {"id": "2", "content": "This is the second message with even more text that takes up tokens."},
-            {"id": "3", "content": "This is the third message with additional content."},
+            {
+                "id": "1",
+                "content": "This is the first message with lots of text that takes up many tokens.",
+            },
+            {
+                "id": "2",
+                "content": "This is the second message with even more text that takes up tokens.",
+            },
+            {
+                "id": "3",
+                "content": "This is the third message with additional content.",
+            },
             {"id": "4", "content": "Fourth message."},
             {"id": "5", "content": "Fifth."},
         ]

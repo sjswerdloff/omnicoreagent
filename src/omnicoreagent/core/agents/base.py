@@ -14,7 +14,7 @@ from omnicoreagent.core.system_prompts import (
     sub_agents_additional_prompt,
     agent_skills_additional_prompt,
     artifact_tool_additional_prompt,
-    FAST_CONVERSATION_SUMMARY_PROMPT
+    FAST_CONVERSATION_SUMMARY_PROMPT,
 )
 import inspect
 from omnicoreagent.core.token_usage import (
@@ -130,11 +130,11 @@ class BaseReactAgent:
         self.background_task_manager = BackgroundTaskManager()
         self.init_skills()
         self.register_internal_tool = ToolRegistry()
-        
+
         self.context_manager = AgentLoopContextManager(
             ContextManagementConfig.from_dict(context_management_config or {})
         )
-        
+
         self.tool_offloader = ToolResponseOffloader(
             config=OffloadConfig.from_dict(tool_offload_config or {})
         )
@@ -460,7 +460,7 @@ class BaseReactAgent:
                 return ToolError(
                     observation="Invalid tool call request: No data provided",
                     tool_name="unknown",
-                    tool_args={}
+                    tool_args={},
                 )
 
             actions = json.loads(parsed_response.data)
@@ -848,29 +848,31 @@ class BaseReactAgent:
                     status = result.get("status", "unknown")
                     data = result.get("data")
                     message = result.get("message", "")
-                    
+
                     SKIP_OFFLOAD_TOOLS = {
-                    "read_artifact", 
-                    "tail_artifact", 
-                    "search_artifact", 
-                    "list_artifacts",
-                    "memory_view",
-                    "memory_create_update"
-                }
-                    
-                    if (data is not None 
-                        and self.tool_offloader.config.enabled 
-                        and tool_name not in SKIP_OFFLOAD_TOOLS):
+                        "read_artifact",
+                        "tail_artifact",
+                        "search_artifact",
+                        "list_artifacts",
+                        "memory_view",
+                        "memory_create_update",
+                    }
+
+                    if (
+                        data is not None
+                        and self.tool_offloader.config.enabled
+                        and tool_name not in SKIP_OFFLOAD_TOOLS
+                    ):
                         data_str = str(data) if not isinstance(data, str) else data
                         if self.tool_offloader.should_offload(data_str):
                             offloaded = self.tool_offloader.offload(
                                 tool_name=tool_name,
                                 response=data_str,
-                                metadata={"args": args, "session_id": session_id}
+                                metadata={"args": args, "session_id": session_id},
                             )
                             data = offloaded.context_message
                             result["data"] = data
-                    
+
                     tool_counter[tool_name] += 1
                     tool_call_generated_id = f"{tool_name}#{tool_counter[tool_name]}"
                     display_value = data if data is not None else message
@@ -1399,18 +1401,17 @@ class BaseReactAgent:
         session_state.messages.insert(
             0, Message(role="system", content=updated_system_prompt)
         )
-        
+
         for i in range(len(session_state.messages) - 1, -1, -1):
             msg = session_state.messages[i]
             if msg.role == "user":
                 from datetime import datetime
+
                 datetime_info = f"[CURRENT_DATETIME: {datetime.now().strftime('%Y-%m-%d %H:%M:%S %Z')}]\n\n"
                 session_state.messages[i] = Message(
-                    role="user",
-                    content=datetime_info + msg.content
+                    role="user", content=datetime_info + msg.content
                 )
                 break
-
 
     async def sub_agents_registry(self, sub_agents: List[Any]) -> str:
         """
@@ -1753,16 +1754,25 @@ class BaseReactAgent:
 
                 try:
                     if self.context_manager.should_trigger(session_state.messages):
+
                         async def _summarize_for_context(msgs):
                             """Summarize messages for context management."""
-                            history_text = "\n".join([
-                                f"{m.role if hasattr(m, 'role') else m.get('role', 'unknown')}: "
-                                f"{m.content if hasattr(m, 'content') else m.get('content', '')}"
-                                for m in msgs
-                            ])
+                            history_text = "\n".join(
+                                [
+                                    f"{m.role if hasattr(m, 'role') else m.get('role', 'unknown')}: "
+                                    f"{m.content if hasattr(m, 'content') else m.get('content', '')}"
+                                    for m in msgs
+                                ]
+                            )
                             summary_msgs = [
-                                {"role": "system", "content": FAST_CONVERSATION_SUMMARY_PROMPT},
-                                {"role": "user", "content": f"Here is the conversation history: {history_text}"}
+                                {
+                                    "role": "system",
+                                    "content": FAST_CONVERSATION_SUMMARY_PROMPT,
+                                },
+                                {
+                                    "role": "user",
+                                    "content": f"Here is the conversation history: {history_text}",
+                                },
                             ]
                             response = await llm_connection.llm_call(summary_msgs)
                             if hasattr(response, "choices") and response.choices:
@@ -1781,12 +1791,14 @@ class BaseReactAgent:
                                 pass
                             else:
                                 response = ""
-                            
+
                             return response
-                        
-                        session_state.messages = await self.context_manager.manage_context(
-                            messages=session_state.messages,
-                            summarize_fn=_summarize_for_context,
+
+                        session_state.messages = (
+                            await self.context_manager.manage_context(
+                                messages=session_state.messages,
+                                summarize_fn=_summarize_for_context,
+                            )
                         )
                         if debug:
                             logger.info(
