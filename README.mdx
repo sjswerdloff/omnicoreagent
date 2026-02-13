@@ -998,6 +998,58 @@ agent = OmniCoreAgent(
 
 > 💡 **When to Use**: Use Local Tools when you need custom business logic, internal APIs, or any Python functionality that isn't available via MCP servers.
 
+### 7.1 🏘️ Community Tools Library
+
+OmniCoreAgent comes with a growing library of pre-built community tools for common tasks like search, scraping, and code execution.
+
+| Category | Tools | Description |
+|----------|-------|-------------|
+| **Search** | `TavilySearch`, `GoogleSearch`, `ExaSearch`, `PerplexitySearch`, `Valyu`, `TakoSearch` | Web search, news, and specialized data lookup |
+| **Scraping** | `Firecrawl` | Turn any website into LLM-ready markdown |
+| **Execution** | `LocalPython`, `LocalBash` | Execute code and commands locally (Use with caution!) |
+
+#### Configuration
+Tools automatically read from these environment variables if no API key is passed:
+
+| Tool | Environment Variable |
+|------|----------------------|
+| `TavilySearch` | `TAVILY_API_KEY` |
+| `GoogleSearch` | `GOOGLE_API_KEY`, `GOOGLE_CSE_ID` |
+| `ExaSearch` | `EXA_API_KEY` |
+| `PerplexitySearch` | `PERPLEXITY_API_KEY` |
+| `Firecrawl` | `FIRECRAWL_API_KEY` |
+| `Valyu` | `VALYU_API_KEY` |
+| `TakoSearch` | `TAKO_API_KEY` |
+
+#### Usage
+Pass a list of instantiated tools directly to `local_tools`:
+
+```python
+from omnicoreagent import OmniCoreAgent
+from omnicoreagent.community import TavilySearch, LocalPython
+
+# Initialize tools
+search_tool = TavilySearch(api_key="tvly-...")
+python_tool = LocalPython()
+
+agent = OmniCoreAgent(
+    name="research_agent",
+    # Pass list directly - the agent handles registration!
+    local_tools=[search_tool, python_tool],
+    model_config={"provider": "openai", "model": "gpt-4o"}
+)
+```
+
+#### Standardized Response
+All community tools return a consistent dictionary format:
+```python
+{
+    "status": "success" | "error",
+    "data": Any,       # The actual result
+    "message": str     # Summary or error details
+}
+```
+
 ---
 
 ### 8. 🧩 Agent Skills System (Packaged Capabilities)
