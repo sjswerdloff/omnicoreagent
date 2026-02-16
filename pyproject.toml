@@ -14,7 +14,7 @@ bump = true
 name = "omnicoreagent"
 dynamic = ["version"]
 description = "OmniCoreAgent is a powerful Python AI Agent framework for building autonomous AI agents that think, reason, and execute complex tasks. Production-ready agents that use tools, manage memory, coordinate workflows, and handle real-world business logic."
-readme = "README.md"
+readme = { file = "README.mdx", content-type = "text/markdown" }
 authors = [{ name = "Abiola Adeshina", email = "abiolaadedayo1993@gmail.com" }]
 requires-python = ">=3.10"
 
@@ -80,7 +80,7 @@ packages = ["src/omnicoreagent"]
 include = [
 
     "LICENSE",
-    "README.md"
+    "README.mdx"
 ]
 
 [tool.pytest.ini_options]
