@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
-from agno.models.message import Message
+from omnicoreagent.core.types import Message
 
 
 class AgentRunException(Exception):
@@ -64,21 +64,21 @@ class RunCancelledException(Exception):
         self.error_id = "run_cancelled_error"
 
 
-class AgnoError(Exception):
+class OmniCoreAgentError(Exception):
     """Exception raised when an internal error occurs."""
 
     def __init__(self, message: str, status_code: int = 500):
         super().__init__(message)
         self.message = message
         self.status_code = status_code
-        self.type = "agno_error"
-        self.error_id = "agno_error"
+        self.type = "omnicoreagent_error"
+        self.error_id = "omnicoreagent_error"
 
     def __str__(self) -> str:
         return str(self.message)
 
 
-class ModelAuthenticationError(AgnoError):
+class ModelAuthenticationError(OmniCoreAgentError):
     """Raised when model authentication fails."""
 
     def __init__(self, message: str, status_code: int = 401, model_name: Optional[str] = None):
@@ -89,7 +89,7 @@ class ModelAuthenticationError(AgnoError):
         self.error_id = "model_authentication_error"
 
 
-class ModelProviderError(AgnoError):
+class ModelProviderError(OmniCoreAgentError):
     """Exception raised when a model provider returns an error."""
 
     def __init__(
@@ -180,7 +180,7 @@ class RetryableModelProviderError(Exception):
     retry_guidance_message: Optional[str] = None
 
 
-class RemoteServerUnavailableError(AgnoError):
+class RemoteServerUnavailableError(OmniCoreAgentError):
     """Exception raised when a remote server is unavailable.
 
     This can happen due to:

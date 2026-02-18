@@ -2,22 +2,27 @@ import json
 from os import getenv
 from typing import Any, Dict, List, Optional
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.utils import logger
 
 try:
     from firecrawl import FirecrawlApp
 except ImportError:
-    pass
+    FirecrawlApp = None
 
 class FirecrawlBase:
     def __init__(self, api_key: Optional[str] = None):
+        if FirecrawlApp is None:
+            raise ImportError(
+                "Could not import `firecrawl` python package. "
+                "Please install it using `pip install firecrawl`."
+            )
         self.api_key = api_key or getenv("FIRECRAWL_API_KEY")
         self.app = None
         if self.api_key:
             try:
                 self.app = FirecrawlApp(api_key=self.api_key)
             except Exception:
-                pass
+                self.app = None
 
 class FirecrawlScrape(FirecrawlBase):
     def get_tool(self) -> Tool:

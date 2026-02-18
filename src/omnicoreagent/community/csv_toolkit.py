@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.utils import logger
 
 class CsvRead:
     def get_tool(self) -> Tool:

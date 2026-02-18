@@ -7,19 +7,28 @@ from omnicoreagent.core.tools.local_tools_registry import Tool
 # No, we assuming environment has them or we provide error message.
 # For standard structure, better to wrap imports inside methods or try/except.
 
+try:
+    from google.oauth2.credentials import Credentials
+    from googleapiclient.discovery import build
+    from google_auth_oauthlib.flow import InstalledAppFlow
+    from google.auth.transport.requests import Request
+except ImportError:
+    Credentials = None
+    build = None
+    InstalledAppFlow = None
+    Request = None
+
 class GmailBase:
     def __init__(self):
+        if build is None:
+             raise ImportError(
+                "Could not import `google-api-python-client` python package. "
+                "Please install it using `pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib`."
+            )
         self.scopes = ["https://www.googleapis.com/auth/gmail.modify"]
         self.creds = None
 
     def _get_service(self):
-        try:
-            from google.oauth2.credentials import Credentials
-            from googleapiclient.discovery import build
-            from google_auth_oauthlib.flow import InstalledAppFlow
-            from google.auth.transport.requests import Request
-        except ImportError:
-            raise ImportError("Google API client libraries not installed.")
 
         # Simplified Auth Logic (assuming token.json exists or credentials.json)
         # In a real refactor, we'd preserve the robust auth flow from original file.

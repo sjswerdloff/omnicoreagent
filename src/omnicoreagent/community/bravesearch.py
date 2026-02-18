@@ -2,11 +2,20 @@ import json
 import os
 from typing import Optional, Dict, Any
 from omnicoreagent.core.tools.local_tools_registry import Tool
-
+try:
+    from brave import Brave
+except ImportError:
+    Brave = None
 class BraveSearchTool:
     """Brave Search Tool integration."""
 
     def __init__(self, api_key: Optional[str] = None):
+        if Brave is None:
+            raise ImportError(
+                "Could not import `brave` python package. "
+                "Please install it with `pip install brave-search`."
+            )
+            
         self.api_key = api_key or os.environ.get("BRAVE_API_KEY")
         if not self.api_key:
             raise ValueError("BRAVE_API_KEY is required. Please set the BRAVE_API_KEY environment variable.")
@@ -35,14 +44,7 @@ class BraveSearchTool:
 
     async def _search(self, query: str, max_results: int = 5) -> Dict[str, Any]:
         """Search Brave."""
-        try:
-            from brave import Brave
-        except ImportError:
-             return {
-                "status": "error",
-                "data": None,
-                "message": "`brave-search` not installed. Please install using `pip install brave-search`"
-            }
+
 
         try:
             brave = Brave(api_key=self.api_key)

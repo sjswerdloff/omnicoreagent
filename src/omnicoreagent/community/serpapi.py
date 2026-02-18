@@ -3,10 +3,21 @@ import os
 from typing import Any, Dict, Optional
 from omnicoreagent.core.tools.local_tools_registry import Tool
 
+try:
+    import serpapi
+except ImportError:
+    serpapi = None
+
 class SerpApiGoogleSearch:
     """SerpApi Google Search Tool integration."""
 
     def __init__(self, api_key: Optional[str] = None):
+        if serpapi is None:
+            raise ImportError(
+                "Could not import `google-search-results` python package. "
+                "Please install it with `pip install google-search-results`."
+            )
+            
         self.api_key = api_key or os.environ.get("SERP_API_KEY")
         if not self.api_key:
              # We don't raise error here to avoid breaking import if enc var missing, 
@@ -41,15 +52,6 @@ class SerpApiGoogleSearch:
                 "status": "error",
                 "data": None,
                 "message": "SERP_API_KEY not provided."
-            }
-        
-        try:
-            import serpapi
-        except ImportError:
-             return {
-                "status": "error",
-                "data": None,
-                "message": "`google-search-results` not installed."
             }
 
         try:

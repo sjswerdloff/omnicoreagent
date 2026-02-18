@@ -5,7 +5,7 @@ from os import getenv
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.utils import logger
 
 try:
     from google.auth.transport.requests import Request
@@ -14,12 +14,22 @@ try:
     from googleapiclient.discovery import Resource, build
     from googleapiclient.errors import HttpError
 except ImportError:
-    pass
+    Request = None
+    Credentials = None
+    InstalledAppFlow = None
+    Resource = None
+    build = None
+    HttpError = None
 
 class GoogleBase:
     DEFAULT_SCOPES = []
     
     def __init__(self, scopes: Optional[List[str]] = None):
+        if build is None:
+            raise ImportError(
+                "Could not import `google-api-python-client` python package. "
+                "Please install it using `pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib`."
+            )
         self.scopes = scopes or self.DEFAULT_SCOPES
         self.creds = None
         self.service = None

@@ -1,16 +1,18 @@
 from os import getenv
 from typing import Any, Dict, Optional, List, Union, Iterable, Iterator
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.utils import logger
 
 try:
     import replicate
     from replicate.helpers import FileOutput
 except ImportError:
-    pass
+    replicate = None
 
 class ReplicateBase:
     def __init__(self, api_key: Optional[str] = None):
+        if replicate is None:
+             raise ImportError("replicate not installed. Please install it using `pip install replicate`.")
         self.api_key = api_key or getenv("REPLICATE_API_KEY")
 
 class ReplicateGenerateMedia(ReplicateBase):

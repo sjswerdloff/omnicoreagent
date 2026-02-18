@@ -5,17 +5,20 @@ from omnicoreagent.core.tools.local_tools_registry import Tool
 try:
     import boto3
 except ImportError:
-    pass
+    boto3 = None
 
 class AWSLambdaBase:
     def __init__(self, region_name: str = "us-east-1"):
+        if boto3 is None:
+            raise ImportError(
+                "Could not import `boto3` python package. "
+                "Please install it using `pip install boto3`."
+            )
         self.region_name = region_name
     
     def _get_client(self):
         try:
              return boto3.client("lambda", region_name=self.region_name)
-        except NameError:
-             raise ImportError("boto3 is required.")
         except Exception as e:
              raise ValueError(f"Failed to create lambda client: {e}")
 

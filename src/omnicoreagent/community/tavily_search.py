@@ -1,6 +1,9 @@
 
 import os
-import httpx
+try:
+    import httpx
+except ImportError:
+    httpx = None
 from typing import Any, Dict, Optional
 from omnicoreagent.core.tools.local_tools_registry import Tool
 
@@ -15,6 +18,11 @@ class TavilySearch:
         Args:
             api_key: Tavily API key. If not provided, it will be read from TAVILY_API_KEY environment variable.
         """
+        if httpx is None:
+            raise ImportError(
+                "Could not import `httpx` python package. "
+                "Please install it with `pip install httpx`."
+            )
         self.api_key = api_key or os.environ.get("TAVILY_API_KEY")
         if not self.api_key:
             raise ValueError(

@@ -3,16 +3,23 @@ from os import getenv
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.utils import logger
 
 try:
     from google.oauth2.credentials import Credentials
     from googleapiclient.discovery import Resource, build
 except ImportError:
-    pass
+    Credentials = None
+    Resource = None
+    build = None
 
 class GoogleDriveBase:
     def __init__(self):
+        if build is None:
+            raise ImportError(
+                "Could not import `google-api-python-client` python package. "
+                "Please install it using `pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib`."
+            )
         self.scopes = ["https://www.googleapis.com/auth/drive.readonly", "https://www.googleapis.com/auth/drive.file"]
         self.creds = None
         self.service = None

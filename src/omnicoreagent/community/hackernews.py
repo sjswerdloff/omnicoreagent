@@ -1,77 +1,86 @@
 import json
-from typing import Any, List
+from typing import Any, List, Dict
 
-import httpx
+from omnicoreagent.core.tools.local_tools_registry import Tool
+from omnicoreagent.core.utils import log_debug, logger
 
-from omnicoreagent.community import Toolkit
-from omnicoreagent.utils.log import log_debug, logger
+try:
+    import httpx
+except ImportError:
+    httpx = None
 
 
-class HackerNewsTools(Toolkit):
-    """
-    HackerNews is a tool for getting top stories from Hacker News.
+class HackerNewsGetTopStories:
+    def __init__(self):
+        if httpx is None:
+            raise ImportError("`httpx` not installed. Please install using `pip install httpx`")
 
-    Args:
-        enable_get_top_stories (bool): Enable getting top stories from Hacker News. Default is True.
-        enable_get_user_details (bool): Enable getting user details from Hacker News. Default is True.
-        all (bool): Enable all tools. Overrides individual flags when True. Default is False.
-    """
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="hackernews_get_top_stories",
+            description="Get top stories from Hacker News.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "num_stories": {"type": "integer", "default": 10},
+                },
+            },
+            function=self._get_top_stories,
+        )
 
-    def __init__(
-        self, enable_get_top_stories: bool = True, enable_get_user_details: bool = True, all: bool = False, **kwargs
-    ):
-        tools: List[Any] = []
-        if all or enable_get_top_stories:
-            tools.append(self.get_top_hackernews_stories)
-        if all or enable_get_user_details:
-            tools.append(self.get_user_details)
-
-        super().__init__(name="hackers_news", tools=tools, **kwargs)
-
-    def get_top_hackernews_stories(self, num_stories: int = 10) -> str:
-        """Use this function to get top stories from Hacker News.
-
-        Args:
-            num_stories (int): Number of stories to return. Defaults to 10.
-
-        Returns:
-            str: JSON string of top stories.
-        """
-
+    async def _get_top_stories(self, num_stories: int = 10) -> Dict[str, Any]:
         log_debug(f"Getting top {num_stories} stories from Hacker News")
-        # Fetch top story IDs
-        response = httpx.get("https://hacker-news.firebaseio.com/v0/topstories.json")
-        story_ids = response.json()
+        try:
+            response = httpx.get("https://hacker-news.firebaseio.com/v0/topstories.json")
+            story_ids = response.json()
 
-        # Fetch story details
-        stories = []
-        for story_id in story_ids[:num_stories]:
-            story_response = httpx.get(f"https://hacker-news.firebaseio.com/v0/item/{story_id}.json")
-            story = story_response.json()
-            story["username"] = story["by"]
-            stories.append(story)
-        return json.dumps(stories)
+            stories = []
+            for story_id in story_ids[:num_stories]:
+                story_resp = httpx.get(f"https://hacker-news.firebaseio.com/v0/item/{story_id}.json")
+                story = story_resp.json()
+                if story:
+                    story["username"] = story.get("by")
+                    stories.append(story)
+            return {"status": "success", "data": stories, "message": f"Retrieved {len(stories)} stories"}
+        except Exception as e:
+            return {"status": "error", "data": None, "message": str(e)}
 
-    def get_user_details(self, username: str) -> str:
-        """Use this function to get the details of a Hacker News user using their username.
 
-        Args:
-            username (str): Username of the user to get details for.
+class HackerNewsGetUserDetails:
+    def __init__(self):
+        if httpx is None:
+            raise ImportError("`httpx` not installed. Please install using `pip install httpx`")
 
-        Returns:
-            str: JSON string of the user details.
-        """
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="hackernews_get_user_details",
+            description="Get details of a Hacker News user.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "username": {"type": "string"},
+                },
+                "required": ["username"],
+            },
+            function=self._get_user_details,
+        )
 
+    async def _get_user_details(self, username: str) -> Dict[str, Any]:
         try:
             log_debug(f"Getting details for user: {username}")
-            user = httpx.get(f"https://hacker-news.firebaseio.com/v0/user/{username}.json").json()
+            resp = httpx.get(f"https://hacker-news.firebaseio.com/v0/user/{username}.json")
+            user = resp.json()
+            if not user:
+                return {"status": "error", "data": None, "message": "User not found"}
+
             user_details = {
-                "id": user.get("user_id"),
+                "id": user.get("id"),
                 "karma": user.get("karma"),
                 "about": user.get("about"),
                 "total_items_submitted": len(user.get("submitted", [])),
+                "created": user.get("created"),
             }
-            return json.dumps(user_details)
+            return {"status": "success", "data": user_details, "message": f"Details for {username}"}
         except Exception as e:
             logger.exception(e)
-            return f"Error getting user details: {e}"
+            return {"status": "error", "data": None, "message": str(e)}

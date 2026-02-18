@@ -1,54 +1,48 @@
 import json
 from typing import Any, Dict, Optional
+from uuid import uuid4
 
-from omnicoreagent.community import Toolkit
-from omnicoreagent.utils.log import log_debug, logger
+from omnicoreagent.core.tools.local_tools_registry import Tool
+from omnicoreagent.core.utils import log_debug, logger
 
 try:
     import newspaper
 except ImportError:
-    raise ImportError("`newspaper4k` not installed. Please run `pip install newspaper4k lxml_html_clean`.")
+    newspaper = None
 
 
-class Newspaper4kTools(Toolkit):
-    """
-    Newspaper4kTools is a toolkit for getting the text of an article from a URL.
-    Args:
-        enable_read_article (bool): Whether to read an article from a URL.
-        include_summary (bool): Whether to include the summary of an article.
-        article_length (Optional[int]): The length of the article to read.
-    """
+
+class NewsArticleRead:
+    """Tool for reading news articles using newspaper4k."""
 
     def __init__(
         self,
         include_summary: bool = False,
         article_length: Optional[int] = None,
-        enable_read_article: bool = True,
-        all: bool = False,
-        **kwargs,
     ):
-        self.include_summary: bool = include_summary
-        self.article_length: Optional[int] = article_length
+        if newspaper is None:
+            raise ImportError("`newspaper4k` not installed. Please install using `pip install newspaper4k`")
+        self.include_summary = include_summary
+        self.article_length = article_length
 
-        tools = []
-        if all or enable_read_article:
-            tools.append(self.read_article)
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="news_article_read",
+            description="Read and extract text from a news article URL.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string", "description": "The URL of the news article"},
+                },
+                "required": ["url"],
+            },
+            function=self._read_article,
+        )
 
-        super().__init__(name="newspaper4k_tools", tools=tools, **kwargs)
-
-    def get_article_data(self, url: str) -> Optional[Dict[str, Any]]:
-        """Read and get article data from a URL.
-
-        Args:
-            url (str): The URL of the article.
-
-        Returns:
-            Dict[str, Any]: The article data.
-        """
-
+    def _get_article_data(self, url: str) -> Optional[Dict[str, Any]]:
         try:
             article = newspaper.article(url)
-            article_data = {}
+            article_data: Dict[str, Any] = {}
             if article.title:
                 article_data["title"] = article.title
             if article.authors:
@@ -57,37 +51,26 @@ class Newspaper4kTools(Toolkit):
                 article_data["text"] = article.text
             if self.include_summary and article.summary:
                 article_data["summary"] = article.summary
-
             try:
                 if article.publish_date:
-                    article_data["publish_date"] = article.publish_date.isoformat() if article.publish_date else None
+                    article_data["publish_date"] = article.publish_date.isoformat()
             except Exception:
                 pass
-
             return article_data
         except Exception as e:
             logger.warning(f"Error reading article from {url}: {e}")
             return None
 
-    def read_article(self, url: str) -> str:
-        """Use this function to read an article from a URL.
-
-        Args:
-            url (str): The URL of the article.
-
-        Returns:
-            str: JSON containing the article author, publish date, and text.
-        """
-
+    async def _read_article(self, url: str) -> Dict[str, Any]:
         try:
             log_debug(f"Reading news: {url}")
-            article_data = self.get_article_data(url)
+            article_data = self._get_article_data(url)
             if not article_data:
-                return f"Error reading article from {url}: No data found."
+                return {"status": "error", "data": None, "message": f"Could not read article from {url}"}
 
             if self.article_length and "text" in article_data:
                 article_data["text"] = article_data["text"][: self.article_length]
 
-            return json.dumps(article_data, indent=2)
+            return {"status": "success", "data": article_data, "message": "Article read successfully"}
         except Exception as e:
-            return f"Error reading article from {url}: {e}"
+            return {"status": "error", "data": None, "message": str(e)}

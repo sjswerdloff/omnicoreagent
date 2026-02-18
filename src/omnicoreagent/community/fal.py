@@ -3,15 +3,20 @@ from typing import Any, Dict, Optional, Union
 from uuid import uuid4
 
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.utils import logger
 
 try:
     import fal_client
 except ImportError:
-    pass
+    fal_client = None
 
 class FalBase:
     def __init__(self, api_key: Optional[str] = None):
+        if fal_client is None:
+            raise ImportError(
+                "Could not import `fal-client` python package. "
+                "Please install it using `pip install fal-client`."
+            )
         self.api_key = api_key or getenv("FAL_API_KEY")
         self.seen_logs: set[str] = set()
 

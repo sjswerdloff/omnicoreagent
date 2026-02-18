@@ -2,466 +2,207 @@ import json
 import os
 from typing import Any, Dict, List, Optional, Union
 
-from omnicoreagent.community import Toolkit
-from omnicoreagent.utils.log import log_info, logger
+from omnicoreagent.core.tools.local_tools_registry import Tool
+from omnicoreagent.core.utils import log_info, logger
 
 
-class VisualizationTools(Toolkit):
-    def __init__(
-        self,
-        output_dir: str = "charts",
-        enable_create_bar_chart: bool = True,
-        enable_create_line_chart: bool = True,
-        enable_create_pie_chart: bool = True,
-        enable_create_scatter_plot: bool = True,
-        enable_create_histogram: bool = True,
-        all: bool = False,
-        **kwargs,
-    ):
-        """
-        Initialize the VisualizationTools toolkit.
-
-        Args:
-            output_dir (str): Directory to save charts. Default is "charts".
-        """
-        # Check if matplotlib is available
+class VisualizationTools:
+    def __init__(self, output_dir: str = "charts"):
         try:
             import matplotlib
-
-            # Use non-interactive backend to avoid display issues
             matplotlib.use("Agg")
         except ImportError:
             raise ImportError("matplotlib is not installed. Please install it using: `pip install matplotlib`")
 
-        # Create output directory if it doesn't exist
+
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
-
         self.output_dir = output_dir
 
-        tools: List[Any] = []
-        if enable_create_bar_chart or all:
-            tools.append(self.create_bar_chart)
-        if enable_create_line_chart or all:
-            tools.append(self.create_line_chart)
-        if enable_create_pie_chart or all:
-            tools.append(self.create_pie_chart)
-        if enable_create_scatter_plot or all:
-            tools.append(self.create_scatter_plot)
-        if enable_create_histogram or all:
-            tools.append(self.create_histogram)
+    def _normalize_data(self, data: Union[Dict, List, str]) -> Dict[str, float]:
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except json.JSONDecodeError:
+                return {"Data": 1.0}
 
-        super().__init__(name="visualization_tools", tools=tools, **kwargs)
-
-    def _normalize_data_for_charts(
-        self, data: Union[Dict[str, Any], List[Dict[str, Any]], List[Any], str]
-    ) -> Dict[str, Union[int, float]]:
-        """
-        Normalize various data formats into a simple dictionary format for charts.
-
-        Args:
-            data: Can be a dict, list of dicts, or list of values
-
-        Returns:
-            Dict with string keys and numeric values
-        """
         if isinstance(data, dict):
-            # Already in the right format, just ensure values are numeric
             return {str(k): float(v) if isinstance(v, (int, float)) else 0 for k, v in data.items()}
-
-        elif isinstance(data, list) and len(data) > 0:
+        elif isinstance(data, list) and data:
             if isinstance(data[0], dict):
-                # List of dictionaries - try to find key-value pairs
                 result = {}
                 for item in data:
                     if isinstance(item, dict):
-                        # Look for common key patterns
                         keys = list(item.keys())
                         if len(keys) >= 2:
-                            # Use first key as label, second as value
-                            label_key = keys[0]
-                            value_key = keys[1]
-                            result[str(item[label_key])] = (
-                                float(item[value_key]) if isinstance(item[value_key], (int, float)) else 0
-                            )
+                            result[str(item[keys[0]])] = float(item[keys[1]]) if isinstance(item[keys[1]], (int, float)) else 0
                 return result
-            else:
-                # List of values - create numbered keys
-                return {f"Item {i + 1}": float(v) if isinstance(v, (int, float)) else 0 for i, v in enumerate(data)}
-
-        # Fallback
+            return {f"Item {i+1}": float(v) if isinstance(v, (int, float)) else 0 for i, v in enumerate(data)}
         return {"Data": 1.0}
 
-    def create_bar_chart(
-        self,
-        data: Union[Dict[str, Union[int, float]], List[Dict[str, Any]], str],
-        title: str = "Bar Chart",
-        x_label: str = "Categories",
-        y_label: str = "Values",
-        filename: Optional[str] = None,
-    ) -> str:
-        """
-        Create a bar chart from the provided data.
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="create_bar_chart",
+            description="Create a bar chart from data.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "data": {"description": "Dict or list of data points"},
+                    "title": {"type": "string", "default": "Bar Chart"},
+                    "x_label": {"type": "string", "default": "Categories"},
+                    "y_label": {"type": "string", "default": "Values"},
+                    "filename": {"type": "string"},
+                },
+                "required": ["data"],
+            },
+            function=self._create_bar_chart,
+        )
 
-        Args:
-            data: Dictionary with categories as keys and values as numbers,
-                  or list of dictionaries, or JSON string
-            title (str): Title of the chart
-            x_label (str): Label for x-axis
-            y_label (str): Label for y-axis
-            filename (Optional[str]): Custom filename for the chart image
-
-        Returns:
-            str: JSON string with chart information and file path
-        """
+    async def _create_bar_chart(self, data: Any, title: str = "Bar Chart", x_label: str = "Categories", y_label: str = "Values", filename: Optional[str] = None) -> Dict[str, Any]:
         try:
             import matplotlib.pyplot as plt
-
-            # Handle string input (JSON)
-            if isinstance(data, str):
-                try:
-                    data = json.loads(data)
-                except json.JSONDecodeError:
-                    pass
-
-            # Normalize data format
-            normalized_data = self._normalize_data_for_charts(data)
-
-            # Prepare data
-            categories = list(normalized_data.keys())
-            values = list(normalized_data.values())
-
-            # Create the chart
+            norm = self._normalize_data(data)
             plt.figure(figsize=(10, 6))
-            plt.bar(categories, values)
-            plt.title(title)
-            plt.xlabel(x_label)
-            plt.ylabel(y_label)
-            plt.xticks(rotation=45, ha="right")
-            plt.tight_layout()
-
-            # Save the chart
-            if filename is None:
-                filename = f"bar_chart_{len(os.listdir(self.output_dir)) + 1}.png"
-
-            file_path = os.path.join(self.output_dir, filename)
-            plt.savefig(file_path, dpi=300, bbox_inches="tight")
-            plt.close()
-
-            log_info(f"Bar chart created and saved to {file_path}")
-
-            return json.dumps(
-                {
-                    "chart_type": "bar_chart",
-                    "title": title,
-                    "file_path": file_path,
-                    "data_points": len(normalized_data),
-                    "status": "success",
-                }
-            )
-
+            plt.bar(list(norm.keys()), list(norm.values()))
+            plt.title(title); plt.xlabel(x_label); plt.ylabel(y_label)
+            plt.xticks(rotation=45, ha="right"); plt.tight_layout()
+            fname = filename or f"bar_chart_{len(os.listdir(self.output_dir)) + 1}.png"
+            path = os.path.join(self.output_dir, fname)
+            plt.savefig(path, dpi=300, bbox_inches="tight"); plt.close()
+            return {"status": "success", "data": {"file_path": path}, "message": f"Bar chart saved to {path}"}
         except Exception as e:
-            logger.error(f"Error creating bar chart: {str(e)}")
-            return json.dumps({"chart_type": "bar_chart", "error": str(e), "status": "error"})
+            return {"status": "error", "data": None, "message": str(e)}
 
-    def create_line_chart(
-        self,
-        data: Union[Dict[str, Union[int, float]], List[Dict[str, Any]], str],
-        title: str = "Line Chart",
-        x_label: str = "X-axis",
-        y_label: str = "Y-axis",
-        filename: Optional[str] = None,
-    ) -> str:
-        """
-        Create a line chart from the provided data.
 
-        Args:
-            data: Dictionary with x-values as keys and y-values as numbers,
-                  or list of dictionaries, or JSON string
-            title (str): Title of the chart
-            x_label (str): Label for x-axis
-            y_label (str): Label for y-axis
-            filename (Optional[str]): Custom filename for the chart image
+class VisualizationLineChart(VisualizationTools):
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="create_line_chart",
+            description="Create a line chart from data.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "data": {"description": "Dict or list of data points"},
+                    "title": {"type": "string", "default": "Line Chart"},
+                    "x_label": {"type": "string", "default": "X-axis"},
+                    "y_label": {"type": "string", "default": "Y-axis"},
+                },
+                "required": ["data"],
+            },
+            function=self._create_line_chart,
+        )
 
-        Returns:
-            str: JSON string with chart information and file path
-        """
+    async def _create_line_chart(self, data: Any, title: str = "Line Chart", x_label: str = "X-axis", y_label: str = "Y-axis", filename: Optional[str] = None) -> Dict[str, Any]:
         try:
             import matplotlib.pyplot as plt
-
-            # Handle string input (JSON)
-            if isinstance(data, str):
-                try:
-                    data = json.loads(data)
-                except json.JSONDecodeError:
-                    pass
-
-            # Normalize data format
-            normalized_data = self._normalize_data_for_charts(data)
-
-            # Prepare data
-            x_values = list(normalized_data.keys())
-            y_values = list(normalized_data.values())
-
-            # Create the chart
+            norm = self._normalize_data(data)
             plt.figure(figsize=(10, 6))
-            plt.plot(x_values, y_values, marker="o", linewidth=2, markersize=6)
-            plt.title(title)
-            plt.xlabel(x_label)
-            plt.ylabel(y_label)
-            plt.xticks(rotation=45, ha="right")
-            plt.grid(True, alpha=0.3)
-            plt.tight_layout()
-
-            # Save the chart
-            if filename is None:
-                filename = f"line_chart_{len(os.listdir(self.output_dir)) + 1}.png"
-
-            file_path = os.path.join(self.output_dir, filename)
-            plt.savefig(file_path, dpi=300, bbox_inches="tight")
-            plt.close()
-
-            log_info(f"Line chart created and saved to {file_path}")
-
-            return json.dumps(
-                {
-                    "chart_type": "line_chart",
-                    "title": title,
-                    "file_path": file_path,
-                    "data_points": len(normalized_data),
-                    "status": "success",
-                }
-            )
-
+            plt.plot(list(norm.keys()), list(norm.values()), marker="o", linewidth=2)
+            plt.title(title); plt.xlabel(x_label); plt.ylabel(y_label)
+            plt.xticks(rotation=45, ha="right"); plt.grid(True, alpha=0.3); plt.tight_layout()
+            fname = filename or f"line_chart_{len(os.listdir(self.output_dir)) + 1}.png"
+            path = os.path.join(self.output_dir, fname)
+            plt.savefig(path, dpi=300, bbox_inches="tight"); plt.close()
+            return {"status": "success", "data": {"file_path": path}, "message": f"Line chart saved to {path}"}
         except Exception as e:
-            logger.error(f"Error creating line chart: {str(e)}")
-            return json.dumps({"chart_type": "line_chart", "error": str(e), "status": "error"})
+            return {"status": "error", "data": None, "message": str(e)}
 
-    def create_pie_chart(
-        self,
-        data: Union[Dict[str, Union[int, float]], List[Dict[str, Any]], str],
-        title: str = "Pie Chart",
-        filename: Optional[str] = None,
-    ) -> str:
-        """
-        Create a pie chart from the provided data.
 
-        Args:
-            data: Dictionary with categories as keys and values as numbers,
-                  or list of dictionaries, or JSON string
-            title (str): Title of the chart
-            filename (Optional[str]): Custom filename for the chart image
+class VisualizationPieChart(VisualizationTools):
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="create_pie_chart",
+            description="Create a pie chart from data.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "data": {"description": "Dict or list of data points"},
+                    "title": {"type": "string", "default": "Pie Chart"},
+                },
+                "required": ["data"],
+            },
+            function=self._create_pie_chart,
+        )
 
-        Returns:
-            str: JSON string with chart information and file path
-        """
+    async def _create_pie_chart(self, data: Any, title: str = "Pie Chart", filename: Optional[str] = None) -> Dict[str, Any]:
         try:
             import matplotlib.pyplot as plt
-
-            # Handle string input (JSON)
-            if isinstance(data, str):
-                try:
-                    data = json.loads(data)
-                except json.JSONDecodeError:
-                    pass
-
-            # Normalize data format
-            normalized_data = self._normalize_data_for_charts(data)
-
-            # Prepare data
-            labels = list(normalized_data.keys())
-            values = list(normalized_data.values())
-
-            # Create the chart
+            norm = self._normalize_data(data)
             plt.figure(figsize=(10, 8))
-            plt.pie(values, labels=labels, autopct="%1.1f%%", startangle=90)
-            plt.title(title)
-            plt.axis("equal")  # Equal aspect ratio ensures that pie is drawn as a circle
-
-            # Save the chart
-            if filename is None:
-                filename = f"pie_chart_{len(os.listdir(self.output_dir)) + 1}.png"
-
-            file_path = os.path.join(self.output_dir, filename)
-            plt.savefig(file_path, dpi=300, bbox_inches="tight")
-            plt.close()
-
-            log_info(f"Pie chart created and saved to {file_path}")
-
-            return json.dumps(
-                {
-                    "chart_type": "pie_chart",
-                    "title": title,
-                    "file_path": file_path,
-                    "data_points": len(normalized_data),
-                    "status": "success",
-                }
-            )
-
+            plt.pie(list(norm.values()), labels=list(norm.keys()), autopct="%1.1f%%", startangle=90)
+            plt.title(title); plt.axis("equal")
+            fname = filename or f"pie_chart_{len(os.listdir(self.output_dir)) + 1}.png"
+            path = os.path.join(self.output_dir, fname)
+            plt.savefig(path, dpi=300, bbox_inches="tight"); plt.close()
+            return {"status": "success", "data": {"file_path": path}, "message": f"Pie chart saved to {path}"}
         except Exception as e:
-            logger.error(f"Error creating pie chart: {str(e)}")
-            return json.dumps({"chart_type": "pie_chart", "error": str(e), "status": "error"})
+            return {"status": "error", "data": None, "message": str(e)}
 
-    def create_scatter_plot(
-        self,
-        x_data: Optional[List[Union[int, float]]] = None,
-        y_data: Optional[List[Union[int, float]]] = None,
-        title: str = "Scatter Plot",
-        x_label: str = "X-axis",
-        y_label: str = "Y-axis",
-        filename: Optional[str] = None,
-        # Alternative parameter names that agents might use
-        x: Optional[List[Union[int, float]]] = None,
-        y: Optional[List[Union[int, float]]] = None,
-        data: Optional[Union[List[List[Union[int, float]]], Dict[str, List[Union[int, float]]]]] = None,
-    ) -> str:
-        """
-        Create a scatter plot from the provided data.
 
-        Args:
-            x_data: List of x-values (can also use 'x' parameter)
-            y_data: List of y-values (can also use 'y' parameter)
-            title (str): Title of the chart
-            x_label (str): Label for x-axis
-            y_label (str): Label for y-axis
-            filename (Optional[str]): Custom filename for the chart image
-            data: Alternative format - list of [x,y] pairs or dict with 'x' and 'y' keys
+class VisualizationScatterPlot(VisualizationTools):
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="create_scatter_plot",
+            description="Create a scatter plot.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "x_data": {"type": "array", "items": {"type": "number"}},
+                    "y_data": {"type": "array", "items": {"type": "number"}},
+                    "title": {"type": "string", "default": "Scatter Plot"},
+                },
+                "required": ["x_data", "y_data"],
+            },
+            function=self._create_scatter,
+        )
 
-        Returns:
-            str: JSON string with chart information and file path
-        """
+    async def _create_scatter(self, x_data: List[float], y_data: List[float], title: str = "Scatter Plot", x_label: str = "X-axis", y_label: str = "Y-axis", filename: Optional[str] = None) -> Dict[str, Any]:
         try:
             import matplotlib.pyplot as plt
-
-            # Handle different parameter formats
-            if x_data is None:
-                x_data = x
-            if y_data is None:
-                y_data = y
-
-            # Handle data parameter
-            if data is not None:
-                if isinstance(data, dict):
-                    if "x" in data and "y" in data:
-                        x_data = data["x"]
-                        y_data = data["y"]
-                elif isinstance(data, list) and len(data) > 0:
-                    if isinstance(data[0], list) and len(data[0]) == 2:
-                        # List of [x,y] pairs
-                        x_data = [point[0] for point in data]
-                        y_data = [point[1] for point in data]
-
-            # Validate that we have data
-            if x_data is None or y_data is None:
-                raise ValueError("Missing x_data and y_data parameters")
-
             if len(x_data) != len(y_data):
-                raise ValueError("x_data and y_data must have the same length")
-
-            # Create the chart
+                return {"status": "error", "data": None, "message": "x_data and y_data must have same length"}
             plt.figure(figsize=(10, 6))
             plt.scatter(x_data, y_data, alpha=0.7, s=50)
-            plt.title(title)
-            plt.xlabel(x_label)
-            plt.ylabel(y_label)
-            plt.grid(True, alpha=0.3)
-            plt.tight_layout()
-
-            # Save the chart
-            if filename is None:
-                filename = f"scatter_plot_{len(os.listdir(self.output_dir)) + 1}.png"
-
-            file_path = os.path.join(self.output_dir, filename)
-            plt.savefig(file_path, dpi=300, bbox_inches="tight")
-            plt.close()
-
-            log_info(f"Scatter plot created and saved to {file_path}")
-
-            return json.dumps(
-                {
-                    "chart_type": "scatter_plot",
-                    "title": title,
-                    "file_path": file_path,
-                    "data_points": len(x_data),
-                    "status": "success",
-                }
-            )
-
+            plt.title(title); plt.xlabel(x_label); plt.ylabel(y_label)
+            plt.grid(True, alpha=0.3); plt.tight_layout()
+            fname = filename or f"scatter_{len(os.listdir(self.output_dir)) + 1}.png"
+            path = os.path.join(self.output_dir, fname)
+            plt.savefig(path, dpi=300, bbox_inches="tight"); plt.close()
+            return {"status": "success", "data": {"file_path": path}, "message": f"Scatter plot saved to {path}"}
         except Exception as e:
-            logger.error(f"Error creating scatter plot: {str(e)}")
-            return json.dumps({"chart_type": "scatter_plot", "error": str(e), "status": "error"})
+            return {"status": "error", "data": None, "message": str(e)}
 
-    def create_histogram(
-        self,
-        data: List[Union[int, float]],
-        bins: int = 10,
-        title: str = "Histogram",
-        x_label: str = "Values",
-        y_label: str = "Frequency",
-        filename: Optional[str] = None,
-    ) -> str:
-        """
-        Create a histogram from the provided data.
 
-        Args:
-            data: List of numeric values to plot
-            bins (int): Number of bins for the histogram
-            title (str): Title of the chart
-            x_label (str): Label for x-axis
-            y_label (str): Label for y-axis
-            filename (Optional[str]): Custom filename for the chart image
+class VisualizationHistogram(VisualizationTools):
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="create_histogram",
+            description="Create a histogram from numeric data.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "data": {"type": "array", "items": {"type": "number"}},
+                    "bins": {"type": "integer", "default": 10},
+                    "title": {"type": "string", "default": "Histogram"},
+                },
+                "required": ["data"],
+            },
+            function=self._create_histogram,
+        )
 
-        Returns:
-            str: JSON string with chart information and file path
-        """
+    async def _create_histogram(self, data: List[float], bins: int = 10, title: str = "Histogram", x_label: str = "Values", y_label: str = "Frequency", filename: Optional[str] = None) -> Dict[str, Any]:
         try:
             import matplotlib.pyplot as plt
-
-            # Validate data
-            if not isinstance(data, list) or len(data) == 0:
-                raise ValueError("Data must be a non-empty list of numbers")
-
-            # Convert to numeric values
-            numeric_data = []
-            for value in data:
-                try:
-                    numeric_data.append(float(value))
-                except (ValueError, TypeError):
-                    continue
-
-            if len(numeric_data) == 0:
-                raise ValueError("No valid numeric data found")
-
-            # Create the chart
+            numeric = [float(v) for v in data if isinstance(v, (int, float))]
+            if not numeric:
+                return {"status": "error", "data": None, "message": "No valid numeric data"}
             plt.figure(figsize=(10, 6))
-            plt.hist(numeric_data, bins=bins, alpha=0.7, edgecolor="black")
-            plt.title(title)
-            plt.xlabel(x_label)
-            plt.ylabel(y_label)
-            plt.grid(True, alpha=0.3)
-            plt.tight_layout()
-
-            # Save the chart
-            if filename is None:
-                filename = f"histogram_{len(os.listdir(self.output_dir)) + 1}.png"
-
-            file_path = os.path.join(self.output_dir, filename)
-            plt.savefig(file_path, dpi=300, bbox_inches="tight")
-            plt.close()
-
-            log_info(f"Histogram created and saved to {file_path}")
-
-            return json.dumps(
-                {
-                    "chart_type": "histogram",
-                    "title": title,
-                    "file_path": file_path,
-                    "data_points": len(numeric_data),
-                    "bins": bins,
-                    "status": "success",
-                }
-            )
-
+            plt.hist(numeric, bins=bins, alpha=0.7, edgecolor="black")
+            plt.title(title); plt.xlabel(x_label); plt.ylabel(y_label)
+            plt.grid(True, alpha=0.3); plt.tight_layout()
+            fname = filename or f"histogram_{len(os.listdir(self.output_dir)) + 1}.png"
+            path = os.path.join(self.output_dir, fname)
+            plt.savefig(path, dpi=300, bbox_inches="tight"); plt.close()
+            return {"status": "success", "data": {"file_path": path}, "message": f"Histogram saved to {path}"}
         except Exception as e:
-            logger.error(f"Error creating histogram: {str(e)}")
-            return json.dumps({"chart_type": "histogram", "error": str(e), "status": "error"})
+            return {"status": "error", "data": None, "message": str(e)}

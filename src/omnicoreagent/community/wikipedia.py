@@ -1,9 +1,22 @@
 import json
 from typing import Any, Dict
 from omnicoreagent.core.tools.local_tools_registry import Tool
+try:
+    import wikipedia
+except ImportError:
+    wikipedia = None
 
 class WikipediaSearchTool:
     """Wikipedia Search Tool integration."""
+
+    """Wikipedia Search Tool integration."""
+
+    def __init__(self):
+        if wikipedia is None:
+            raise ImportError(
+                "Could not import `wikipedia` python package. "
+                "Please install it with `pip install wikipedia`."
+            )
 
     def get_tool(self) -> Tool:
         return Tool(
@@ -29,14 +42,6 @@ class WikipediaSearchTool:
 
     async def _search(self, query: str, sentences: int = 3) -> Dict[str, Any]:
         """Search Wikipedia."""
-        try:
-            import wikipedia
-        except ImportError:
-             return {
-                "status": "error",
-                "data": None,
-                "message": "`wikipedia` package not installed."
-            }
 
         try:
             # wikipedia lib is synchronous

@@ -2,12 +2,12 @@ import json
 from os import getenv
 from typing import Any, Dict, List, Optional
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.utils import logger
 
 try:
     from jira import JIRA
 except ImportError:
-    pass
+    JIRA = None
 
 class JiraBase:
     def __init__(self, server_url: Optional[str] = None, username: Optional[str] = None, token: Optional[str] = None):
@@ -16,7 +16,9 @@ class JiraBase:
         self.token = token or getenv("JIRA_TOKEN") or getenv("JIRA_PASSWORD")
         
         self.jira = None
-        if self.server_url and self.username and self.token:
+        if JIRA is None:
+             raise ImportError("jira not installed. Please install it using `pip install jira`.")
+        elif self.server_url and self.username and self.token:
             try:
                 self.jira = JIRA(server=self.server_url, basic_auth=(self.username, self.token))
             except Exception as e:

@@ -1,233 +1,135 @@
 import json
 from os import getenv
-from typing import Any, Dict, List, Optional
-
-from omnicoreagent.community import Toolkit
-from omnicoreagent.utils.log import log_info, logger
+from typing import Any, Dict, Optional
 
 try:
     import requests
 except ImportError:
-    raise ImportError("`requests` not installed. Please install using `pip install requests`")
+    requests = None
+
+from omnicoreagent.core.tools.local_tools_registry import Tool
+from omnicoreagent.core.utils import log_info, logger
 
 
-class OpenWeatherTools(Toolkit):
-    """
-    OpenWeather is a toolkit for accessing weather data from OpenWeatherMap API.
-
-    Args:
-        api_key (Optional[str]): OpenWeatherMap API key. If not provided, will try to get from OPENWEATHER_API_KEY env var.
-        units (str): Units of measurement. Options are 'standard', 'metric', and 'imperial'. Default is 'metric'.
-        enable_current_weather (bool): Enable current weather function. Default is True.
-        enable_forecast (bool): Enable forecast function. Default is True.
-        enable_air_pollution (bool): Enable air pollution function. Default is True.
-        enable_geocoding (bool): Enable geocoding function. Default is True.
-        all (bool): Enable all functions. Default is False.
-    """
-
+class OpenWeatherTools:
     def __init__(
         self,
         api_key: Optional[str] = None,
         units: str = "metric",
-        enable_current_weather: bool = True,
-        enable_forecast: bool = True,
-        enable_air_pollution: bool = True,
-        enable_geocoding: bool = True,
-        all: bool = False,
-        **kwargs,
     ):
+        if requests is None:
+            raise ImportError("`requests` not installed. Please install using `pip install requests`")
         self.api_key = api_key or getenv("OPENWEATHER_API_KEY")
         if not self.api_key:
-            raise ValueError(
-                "OpenWeather API key is required. Provide it as an argument or set the OPENWEATHER_API_KEY environment variable."
-            )
-
+            logger.error("OPENWEATHER_API_KEY not set.")
         self.units = units
-        self.base_url = "https://api.openweathermap.org/data/2.5"
-        self.geo_url = "https://api.openweathermap.org/geo/1.0"
+        self.base_url = "https://api.openweathermap.org"
 
-        tools: List[Any] = []
-        if enable_current_weather or all:
-            tools.append(self.get_current_weather)
-        if enable_forecast or all:
-            tools.append(self.get_forecast)
-        if enable_air_pollution or all:
-            tools.append(self.get_air_pollution)
-        if enable_geocoding or all:
-            tools.append(self.geocode_location)
-
-        super().__init__(name="openweather_tools", tools=tools, **kwargs)
-
-    def _make_request(self, url: str, params: Dict) -> Dict:
-        """Make a request to the OpenWeatherMap API.
-
-        Args:
-            url (str): The API endpoint URL.
-            params (Dict): Query parameters for the request.
-
-        Returns:
-            Dict: The JSON response from the API.
-        """
+    def _make_request(self, url: str, params: Dict) -> Optional[Dict]:
         try:
-            params["appid"] = self.api_key
             response = requests.get(url, params=params)
             response.raise_for_status()
             return response.json()
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error making request to {url}: {e}")
-            return {"error": str(e)}
-
-    def geocode_location(self, location: str, limit: int = 1) -> str:
-        """Convert a location name to geographic coordinates.
-
-        Args:
-            location (str): The name of the city, e.g., "London", "Paris", "New York".
-            limit (int): Maximum number of location results. Default is 1.
-
-        Returns:
-            str: JSON string containing location data with coordinates.
-        """
-        try:
-            log_info(f"Geocoding location: {location}")
-            url = f"{self.geo_url}/direct"
-            params = {"q": location, "limit": limit}
-
-            result = self._make_request(url, params)
-
-            if "error" in result:
-                return json.dumps(result)
-
-            if not result:
-                return json.dumps({"error": f"No location found for '{location}'"})
-
-            return json.dumps(result, indent=2)
         except Exception as e:
-            logger.error(f"Error geocoding location: {e}")
-            return json.dumps({"error": str(e)})
+            logger.error(f"API request failed: {e}")
+            return None
 
-    def get_current_weather(self, location: str) -> str:
-        """Get current weather data for a location.
+    def _geocode(self, location: str) -> Optional[Dict]:
+        url = f"{self.base_url}/geo/1.0/direct"
+        params = {"q": location, "limit": 1, "appid": self.api_key}
+        data = self._make_request(url, params)
+        if data and len(data) > 0:
+            return {"lat": data[0]["lat"], "lon": data[0]["lon"], "name": data[0].get("name", location)}
+        return None
 
-        Args:
-            location (str): The name of the city, e.g., "London", "Paris", "New York".
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="openweather_current",
+            description="Get current weather for a location.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "location": {"type": "string", "description": "City name (e.g., 'London', 'New York')"},
+                },
+                "required": ["location"],
+            },
+            function=self._get_current_weather,
+        )
 
-        Returns:
-            str: JSON string containing current weather data.
-        """
+    async def _get_current_weather(self, location: str) -> Dict[str, Any]:
         try:
-            log_info(f"Getting current weather for: {location}")
+            geo = self._geocode(location)
+            if not geo:
+                return {"status": "error", "data": None, "message": f"Could not geocode '{location}'"}
 
-            # First geocode the location to get coordinates
-            geocode_result = json.loads(self.geocode_location(location))
-            if "error" in geocode_result:
-                return json.dumps(geocode_result)
-
-            if not geocode_result:
-                return json.dumps({"error": f"No location found for '{location}'"})
-
-            # Get the first location result
-            loc_data = geocode_result[0]
-            lat, lon = loc_data["lat"], loc_data["lon"]
-
-            # Get current weather using coordinates
-            url = f"{self.base_url}/weather"
-            params = {"lat": lat, "lon": lon, "units": self.units}
-
-            result = self._make_request(url, params)
-
-            # Add the location name to the result
-            if "error" not in result:
-                result["location_name"] = loc_data.get("name", location)
-                result["country"] = loc_data.get("country", "")
-
-            return json.dumps(result, indent=2)
+            url = f"{self.base_url}/data/2.5/weather"
+            params = {"lat": geo["lat"], "lon": geo["lon"], "appid": self.api_key, "units": self.units}
+            data = self._make_request(url, params)
+            if not data:
+                return {"status": "error", "data": None, "message": "Failed to get weather data"}
+            return {"status": "success", "data": data, "message": f"Weather for {location}"}
         except Exception as e:
-            logger.error(f"Error getting current weather: {e}")
-            return json.dumps({"error": str(e)})
+            return {"status": "error", "data": None, "message": str(e)}
 
-    def get_forecast(self, location: str, days: int = 5) -> str:
-        """Get weather forecast for a location.
 
-        Args:
-            location (str): The name of the city, e.g., "London", "Paris", "New York".
-            days (int): Number of days for forecast (max 5). Default is 5.
+class OpenWeatherForecast(OpenWeatherTools):
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="openweather_forecast",
+            description="Get weather forecast for a location.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "location": {"type": "string"},
+                    "days": {"type": "integer", "default": 5, "description": "Number of days (max 5)"},
+                },
+                "required": ["location"],
+            },
+            function=self._get_forecast,
+        )
 
-        Returns:
-            str: JSON string containing forecast data.
-        """
+    async def _get_forecast(self, location: str, days: int = 5) -> Dict[str, Any]:
         try:
-            log_info(f"Getting {days}-day forecast for: {location}")
+            geo = self._geocode(location)
+            if not geo:
+                return {"status": "error", "data": None, "message": f"Could not geocode '{location}'"}
 
-            # First geocode the location to get coordinates
-            geocode_result = json.loads(self.geocode_location(location))
-            if "error" in geocode_result:
-                return json.dumps(geocode_result)
-
-            if not geocode_result:
-                return json.dumps({"error": f"No location found for '{location}'"})
-
-            # Get the first location result
-            loc_data = geocode_result[0]
-            lat, lon = loc_data["lat"], loc_data["lon"]
-
-            # Get forecast using coordinates
-            url = f"{self.base_url}/forecast"
-            params = {
-                "lat": lat,
-                "lon": lon,
-                "units": self.units,
-                # Each day has 8 3-hour forecasts, max 5 days (40 entries)
-                "cnt": min(days * 8, 40),
-            }
-
-            result = self._make_request(url, params)
-
-            # Add the location name to the result
-            if "error" not in result:
-                result["location_name"] = loc_data.get("name", location)
-                result["country"] = loc_data.get("country", "")
-
-            return json.dumps(result, indent=2)
+            url = f"{self.base_url}/data/2.5/forecast"
+            params = {"lat": geo["lat"], "lon": geo["lon"], "appid": self.api_key, "units": self.units, "cnt": days * 8}
+            data = self._make_request(url, params)
+            if not data:
+                return {"status": "error", "data": None, "message": "Failed to get forecast"}
+            return {"status": "success", "data": data, "message": f"Forecast for {location}"}
         except Exception as e:
-            logger.error(f"Error getting forecast: {e}")
-            return json.dumps({"error": str(e)})
+            return {"status": "error", "data": None, "message": str(e)}
 
-    def get_air_pollution(self, location: str) -> str:
-        """Get current air pollution data for a location.
 
-        Args:
-            location (str): The name of the city, e.g., "London", "Paris", "New York".
+class OpenWeatherAirPollution(OpenWeatherTools):
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="openweather_air_pollution",
+            description="Get air pollution data for a location.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "location": {"type": "string"},
+                },
+                "required": ["location"],
+            },
+            function=self._get_air_pollution,
+        )
 
-        Returns:
-            str: JSON string containing air pollution data.
-        """
+    async def _get_air_pollution(self, location: str) -> Dict[str, Any]:
         try:
-            log_info(f"Getting air pollution data for: {location}")
+            geo = self._geocode(location)
+            if not geo:
+                return {"status": "error", "data": None, "message": f"Could not geocode '{location}'"}
 
-            # First geocode the location to get coordinates
-            geocode_result = json.loads(self.geocode_location(location))
-            if "error" in geocode_result:
-                return json.dumps(geocode_result)
-
-            if not geocode_result:
-                return json.dumps({"error": f"No location found for '{location}'"})
-
-            # Get the first location result
-            loc_data = geocode_result[0]
-            lat, lon = loc_data["lat"], loc_data["lon"]
-
-            # Get air pollution data using coordinates
-            url = f"{self.base_url}/air_pollution"
-            params = {"lat": lat, "lon": lon}
-
-            result = self._make_request(url, params)
-
-            # Add the location name to the result
-            if "error" not in result:
-                result["location_name"] = loc_data.get("name", location)
-                result["country"] = loc_data.get("country", "")
-
-            return json.dumps(result, indent=2)
+            url = f"{self.base_url}/data/2.5/air_pollution"
+            params = {"lat": geo["lat"], "lon": geo["lon"], "appid": self.api_key}
+            data = self._make_request(url, params)
+            if not data:
+                return {"status": "error", "data": None, "message": "Failed to get air pollution data"}
+            return {"status": "success", "data": data, "message": f"Air pollution for {location}"}
         except Exception as e:
-            logger.error(f"Error getting air pollution data: {e}")
-            return json.dumps({"error": str(e)})
+            return {"status": "error", "data": None, "message": str(e)}

@@ -2,15 +2,21 @@ import json
 import os
 from typing import Any, Dict, Optional, List
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.utils import logger
 
 try:
     from github import Github, Auth
 except ImportError:
-    pass
+    Github = None
+    Auth = None
 
 class GithubBase:
     def __init__(self, access_token: Optional[str] = None):
+        if Github is None:
+            raise ImportError(
+                "Could not import `PyGithub` python package. "
+                "Please install it with `pip install PyGithub`."
+            )
         self.access_token = access_token or os.getenv("GITHUB_ACCESS_TOKEN")
 
     def _get_client(self):
@@ -19,8 +25,8 @@ class GithubBase:
                 raise ValueError("GitHub access token is required")
             auth = Auth.Token(self.access_token)
             return Github(auth=auth)
-        except NameError:
-             raise ImportError("PyGithub not installed.")
+        except Exception as e:
+            raise e
 
 class GithubSearchRepos(GithubBase):
     def get_tool(self) -> Tool:

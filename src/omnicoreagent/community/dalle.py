@@ -1,12 +1,12 @@
 from os import getenv
 from typing import Any, Dict, Optional, Literal
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.utils import logger
 
 try:
     from openai import OpenAI
 except ImportError:
-    pass
+    OpenAI = None
 
 class DalleBase:
     def __init__(self, api_key: Optional[str] = None):
@@ -14,6 +14,11 @@ class DalleBase:
 
 class DalleCreateImage(DalleBase):
     def __init__(self, api_key: Optional[str] = None, model: str = "dall-e-3", size: str = "1024x1024", quality: str = "standard", n: int = 1):
+        if OpenAI is None:
+            raise ImportError(
+                "Could not import `openai` python package. "
+                "Please install it using `pip install openai`."
+            )
         super().__init__(api_key)
         self.model = model
         self.size = size

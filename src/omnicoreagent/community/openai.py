@@ -4,13 +4,13 @@ from uuid import uuid4
 import base64
 
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
-from omnicoreagent.utils.media import Audio, Image # Keeping import if needed/available, though we return dicts
+from omnicoreagent.core.utils import logger
+from omnicoreagent.core.utils import Audio, Image # Keeping import if needed/available, though we return dicts
 
 try:
     from openai import OpenAI as OpenAIClient
 except ImportError:
-    pass
+    OpenAIClient = None
 
 class OpenAIBase:
     def __init__(self, api_key: Optional[str] = None):
@@ -19,6 +19,8 @@ class OpenAIBase:
 class OpenAITranscribeAudio(OpenAIBase):
     def __init__(self, api_key: Optional[str] = None, model: str = "whisper-1"):
         super().__init__(api_key)
+        if OpenAIClient is None:
+            raise ImportError("`openai` not installed. Please install using `pip install openai`")
         self.model = model
 
     def get_tool(self) -> Tool:
@@ -122,6 +124,8 @@ class OpenAIGenerateImage(OpenAIBase):
 class OpenAIGenerateSpeech(OpenAIBase):
     def __init__(self, api_key: Optional[str] = None, model: str = "tts-1", voice: str = "alloy", format: str = "mp3"):
         super().__init__(api_key)
+        if OpenAIClient is None:
+            raise ImportError("`openai` not installed. Please install using `pip install openai`")
         self.model = model
         self.voice = voice
         self.format = format
@@ -143,6 +147,8 @@ class OpenAIGenerateSpeech(OpenAIBase):
     async def _generate(self, text_input: str) -> Dict[str, Any]:
         if not self.api_key:
              return {"status": "error", "data": None, "message": "OPENAI_API_KEY not set"}
+        if OpenAIClient is None:
+             return {"status": "error", "data": None, "message": "openai not installed. Please install it using `pip install openai`."}
 
         try:
             response = OpenAIClient(api_key=self.api_key).audio.speech.create(

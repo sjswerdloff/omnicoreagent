@@ -8,6 +8,11 @@ class ExaFindSimilar:
     """Exa Find Similar Tool integration."""
 
     def __init__(self, api_key: Optional[str] = None):
+        if httpx is None:
+             raise ImportError(
+                "Could not import `httpx` python package. "
+                "Please install it using `pip install httpx`."
+            )
         self.api_key = api_key or os.environ.get("EXA_API_KEY")
         if not self.api_key:
             raise ValueError("Exa API key not found. Please set EXA_API_KEY environment variable.")

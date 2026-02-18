@@ -2,16 +2,22 @@ import json
 from os import getenv
 from typing import Any, Dict, Optional
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.utils import logger
 
 try:
     import agentql
     from playwright.sync_api import sync_playwright
 except ImportError:
-    pass
+    agentql = None
+    sync_playwright = None
 
 class AgentQLBase:
     def __init__(self, api_key: Optional[str] = None):
+        if agentql is None:
+            raise ImportError(
+                "Could not import `agentql` python package. "
+                "Please install it using `pip install agentql playwright` and run `playwright install`."
+            )
         self.api_key = api_key or getenv("AGENTQL_API_KEY")
 
 class AgentQLScrapeWebsite(AgentQLBase):
@@ -32,6 +38,8 @@ class AgentQLScrapeWebsite(AgentQLBase):
     async def _scrape(self, url: str) -> Dict[str, Any]:
         if not self.api_key:
              return {"status": "error", "data": None, "message": "AGENTQL_API_KEY not set"}
+        if agentql is None:
+            return {"status": "error", "data": None, "message": "agentql not installed. Please install it using `pip install agentql playwright` and run `playwright install`."}
         
         query = """
         {
@@ -76,6 +84,8 @@ class AgentQLCustomQuery(AgentQLBase):
     async def _custom_scrape(self, url: str, query: str) -> Dict[str, Any]:
         if not self.api_key:
              return {"status": "error", "data": None, "message": "AGENTQL_API_KEY not set"}
+        if agentql is None:
+            return {"status": "error", "data": None, "message": "agentql not installed. Please install it using `pip install agentql playwright` and run `playwright install`."}
 
         try:
             with sync_playwright() as playwright, playwright.chromium.launch(headless=True) as browser:

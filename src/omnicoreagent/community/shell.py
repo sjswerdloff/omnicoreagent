@@ -1,29 +1,41 @@
 from pathlib import Path
 from typing import List, Optional, Union
+import subprocess
 
-from omnicoreagent.community import Toolkit
-from omnicoreagent.utils.log import log_debug, log_info, logger
+from omnicoreagent.core.tools.local_tools_registry import Tool
+from omnicoreagent.core.utils import log_debug, log_info, logger
 
 
-class ShellTools(Toolkit):
-    def __init__(
-        self,
-        base_dir: Optional[Union[Path, str]] = None,
-        enable_run_shell_command: bool = True,
-        all: bool = False,
-        **kwargs,
-    ):
+class ShellRunCommand:
+    def __init__(self, base_dir: Optional[Union[Path, str]] = None):
         self.base_dir: Optional[Path] = None
         if base_dir is not None:
             self.base_dir = Path(base_dir) if isinstance(base_dir, str) else base_dir
 
-        tools = []
-        if all or enable_run_shell_command:
-            tools.append(self.run_shell_command)
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="shell_run_command",
+            description="Runs a shell command and returns the output or error.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "args": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "The command to run as a list of strings.",
+                    },
+                    "tail": {
+                        "type": "integer",
+                        "description": "The number of lines to return from the output.",
+                        "default": 100,
+                    },
+                },
+                "required": ["args"],
+            },
+            function=self._run_shell_command,
+        )
 
-        super().__init__(name="shell_tools", tools=tools, **kwargs)
-
-    def run_shell_command(self, args: List[str], tail: int = 100) -> str:
+    def _run_shell_command(self, args: List[str], tail: int = 100) -> str:
         """Runs a shell command and returns the output or error.
 
         Args:
@@ -33,8 +45,6 @@ class ShellTools(Toolkit):
         Returns:
             str: The output of the command.
         """
-        import subprocess
-
         try:
             log_info(f"Running shell command: {args}")
             result = subprocess.run(

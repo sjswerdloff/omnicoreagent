@@ -4,22 +4,28 @@ from uuid import uuid4
 import base64
 
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.utils import logger
 
 try:
     from elevenlabs import ElevenLabs
 except ImportError:
-    pass
+    ElevenLabs = None
 
 class ElevenLabsBase:
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or getenv("ELEVEN_LABS_API_KEY")
         self.client = None
-        if self.api_key:
+        self.client = None
+        if ElevenLabs is None:
+            raise ImportError(
+                "Could not import `elevenlabs` python package. "
+                "Please install it with `pip install elevenlabs`."
+            )
+        elif self.api_key:
             try:
                 self.client = ElevenLabs(api_key=self.api_key)
             except Exception:
-                pass
+                self.client = None
     
     def _process_audio_to_base64(self, audio_generator: Iterator[bytes]) -> str:
         audio_bytes = b"".join(audio_generator)

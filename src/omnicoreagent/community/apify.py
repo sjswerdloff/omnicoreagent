@@ -2,22 +2,27 @@ import json
 from os import getenv
 from typing import Any, Dict, Optional
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.utils import logger
 
 try:
     from apify_client import ApifyClient
 except ImportError:
-    pass
+    ApifyClient = None
 
 class ApifyRunActor:
     def __init__(self, api_token: Optional[str] = None):
+        if ApifyClient is None:
+            raise ImportError(
+                "Could not import `apify-client` python package. "
+                "Please install it using `pip install apify-client`."
+            )
         self.api_token = api_token or getenv("APIFY_API_TOKEN")
         self.client = None
         if self.api_token:
             try:
                 self.client = ApifyClient(self.api_token)
             except Exception:
-                pass
+                self.client = None
 
     def get_tool(self) -> Tool:
         return Tool(

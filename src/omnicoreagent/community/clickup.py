@@ -3,15 +3,20 @@ import re
 from os import getenv
 from typing import Any, Dict, List, Optional
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.utils import logger
 
 try:
     import requests
 except ImportError:
-    pass
+    requests = None
 
 class ClickUpBase:
     def __init__(self, api_key: Optional[str] = None):
+        if requests is None:
+            raise ImportError(
+                "Could not import `requests` python package. "
+                "Please install it using `pip install requests`."
+            )
         self.api_key = api_key or getenv("CLICKUP_API_KEY")
         self.base_url = "https://api.clickup.com/api/v2"
         self.headers = {"Authorization": self.api_key}

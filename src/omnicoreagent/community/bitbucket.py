@@ -4,12 +4,11 @@ from os import getenv
 from typing import Any, Dict, Optional, Union
 
 import requests
+from omnicoreagent.core.tools.local_tools_registry import Tool
+from omnicoreagent.core.utils import logger
 
-from omnicoreagent.community import Toolkit
-from omnicoreagent.utils.log import logger
 
-
-class BitbucketTools(Toolkit):
+class BitbucketTools:
     def __init__(
         self,
         server_url: str = "api.bitbucket.org",
@@ -35,30 +34,10 @@ class BitbucketTools(Toolkit):
         self.workspace = workspace
         self.repo_slug = repo_slug
 
-        if not (self.username and self.auth_password):
-            raise ValueError("Username and password or token are required")
-
-        if not self.workspace:
-            raise ValueError("Workspace is required")
-        if not self.repo_slug:
-            raise ValueError("Repo slug is required")
-
-        self.headers = {"Accept": "application/json", "Authorization": f"Basic {self._generate_access_token()}"}
-
-        super().__init__(
-            name="bitbucket",
-            tools=[
-                self.list_repositories,
-                self.get_repository_details,
-                self.create_repository,
-                self.list_repository_commits,
-                self.list_all_pull_requests,
-                self.get_pull_request_details,
-                self.get_pull_request_changes,
-                self.list_issues,
-            ],
-            **kwargs,
-        )
+        
+        self.headers = {"Accept": "application/json"}
+        if self.username and self.auth_password:
+             self.headers["Authorization"] = f"Basic {self._generate_access_token()}"
 
     def _generate_access_token(self) -> str:
         auth_str = f"{self.username}:{self.auth_password}"
@@ -73,6 +52,9 @@ class BitbucketTools(Toolkit):
         params: Optional[Dict[str, Any]] = None,
         data: Optional[Dict[str, Any]] = None,
     ) -> Union[str, Dict[str, Any]]:
+        if not self.headers.get("Authorization"):
+             raise ValueError("Username and password or token are required")
+             
         url = f"{self.base_url}{endpoint}"
         response = requests.request(method, url, headers=self.headers, json=data, params=params)
         response.raise_for_status()
@@ -85,208 +67,115 @@ class BitbucketTools(Toolkit):
         logger.warning(f"Unsupported content type: {encoding_type}")
         return {}
 
-    def list_repositories(self, count: int = 10) -> str:
-        """
-        Get all repositories in the workspace.
-        Args:
-            count (int, optional): The number of repositories to retrieve
+    def get_tool(self) -> Tool:
+        # Defaults to list_repositories if generic tool is requested, 
+        # but typically we'd want specific tools or a collection.
+        # For now, we return list_repositories as the default "get_tool"
+        return Tool(
+            name="bitbucket_list_repos",
+            description="Get all repositories in the workspace.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "count": {"type": "integer", "default": 10},
+                },
+            },
+            function=self._list_repositories,
+        )
 
-        Returns:
-            str: A JSON string containing repository list.
-        """
+    # Individual Tool Classes for better granularity
+    
+class BitbucketListRepos(BitbucketTools):
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="bitbucket_list_repos",
+             description="Get all repositories in the workspace.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "count": {"type": "integer", "default": 10},
+                },
+            },
+            function=self._list_repositories,
+        )
+
+    async def _list_repositories(self, count: int = 10) -> Dict[str, Any]:
         try:
-            # Limit count to maximum of 50
+            if not self.workspace:
+                return {"status": "error", "data": None, "message": "Workspace is required"}
+                
             count = min(count, 50)
-
-            # Use count directly as pagelen for simplicity, max out at 50 per our limit
             pagelen = min(count, 50)
             params = {"page": 1, "pagelen": pagelen}
 
             repo = self._make_request("GET", f"/repositories/{self.workspace}", params=params)
-
-            return json.dumps(repo, indent=2)
+            return {"status": "success", "data": repo, "message": f"Found repositories in {self.workspace}"}
         except Exception as e:
-            logger.error(f"Error retrieving repository list for workspace {self.workspace}: {str(e)}")
-            return json.dumps({"error": str(e)})
+            return {"status": "error", "data": None, "message": str(e)}
 
-    def get_repository_details(self) -> str:
-        """
-        Retrieves repository information.
-        API Docs: https://developer.atlassian.com/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-repo-slug-get
+class BitbucketGetRepoDetails(BitbucketTools):
+    def get_tool(self) -> Tool:
+        return Tool(
+             name="bitbucket_get_repo_details",
+            description="Retrieves repository information.",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+            },
+             function=self._get_repository_details,
+        )
 
-        Returns:
-            str: A JSON string containing repository information.
-        """
+    async def _get_repository_details(self) -> Dict[str, Any]:
         try:
+            if not self.workspace or not self.repo_slug:
+                return {"status": "error", "data": None, "message": "Workspace and Repo slug are required"}
+                
             repo = self._make_request("GET", f"/repositories/{self.workspace}/{self.repo_slug}")
-            return json.dumps(repo, indent=2)
+            return {"status": "success", "data": repo, "message": f"Details for {self.repo_slug}"}
         except Exception as e:
-            logger.error(f"Error retrieving repository information for {self.repo_slug}: {str(e)}")
-            return json.dumps({"error": str(e)})
+            return {"status": "error", "data": None, "message": str(e)}
 
-    def create_repository(
+class BitbucketCreateRepo(BitbucketTools):
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="bitbucket_create_repo",
+            description="Creates a new repository.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "project": {"type": "string"},
+                    "is_private": {"type": "boolean"},
+                    "description": {"type": "string"},
+                    "language": {"type": "string"},
+                },
+                "required": ["name"],
+            },
+            function=self._create_repository,
+        )
+
+    async def _create_repository(
         self,
         name: str,
         project: Optional[str] = None,
         is_private: bool = False,
         description: Optional[str] = None,
         language: Optional[str] = None,
-        has_issues: bool = False,
-        has_wiki: bool = False,
-    ) -> str:
-        """
-        Creates a new repository in Bitbucket for the given workspace.
-
-        Args:
-            name (str): The name of the new repository.
-            project (str, optional): The key of the project to create the repository in.
-            is_private (bool, optional): Whether the repository is private.
-            description (str, optional): A short description of the repository.
-            language (str, optional): The primary language of the repository
-            has_issues (bool, optional): Whether the repository has issues enabled.
-            has_wiki (bool, optional): Whether the repository has a wiki enabled.
-
-        Returns:
-            str: A JSON string containing repository information.
-        """
+    ) -> Dict[str, Any]:
         try:
-            payload: Dict[str, Any] = {
+             if not self.workspace or not self.repo_slug:
+                return {"status": "error", "data": None, "message": "Workspace and Repo slug are required"}
+
+             payload = {
                 "name": name,
                 "scm": "git",
                 "is_private": is_private,
                 "description": description,
                 "language": language,
-                "has_issues": has_issues,
-                "has_wiki": has_wiki,
             }
-            if project:
+             if project:
                 payload["project"] = {"key": project}
-            repo = self._make_request("POST", f"/repositories/{self.workspace}/{self.repo_slug}", data=payload)
-            return json.dumps(repo, indent=2)
+             repo = self._make_request("POST", f"/repositories/{self.workspace}/{self.repo_slug}", data=payload)
+             return {"status": "success", "data": repo, "message": f"Repository {name} created"}
         except Exception as e:
-            logger.error(f"Error creating repository {self.repo_slug} for {self.workspace}: {str(e)}")
-            return json.dumps({"error": str(e)})
-
-    def list_repository_commits(self, count: int = 10) -> str:
-        """
-        Retrieves all commits in a repository.
-
-        Args:
-            count (int, optional): The number of commits to retrieve. Defaults to 10. Maximum 50.
-
-        Returns:
-            str: A JSON string containing all commits.
-        """
-        try:
-            count = min(count, 50)
-            params = {"pagelen": count}
-
-            commits = self._make_request(
-                "GET", f"/repositories/{self.workspace}/{self.repo_slug}/commits", params=params
-            )
-
-            if isinstance(commits, dict) and commits.get("next"):
-                collected_commits = commits.get("values", [])
-
-                while len(collected_commits) < count and isinstance(commits, dict) and commits.get("next"):
-                    next_url = commits["next"]  # type: ignore
-                    query_param = next_url.split("?")[1] if "?" in next_url else ""
-                    commits = self._make_request(
-                        "GET", f"/repositories/{self.workspace}/{self.repo_slug}/commits?{query_param}"
-                    )
-                    if isinstance(commits, dict):
-                        collected_commits.extend(commits.get("values", []))
-
-                if isinstance(commits, dict):
-                    commits["values"] = collected_commits[:count]
-
-            return json.dumps(commits, indent=2)
-        except Exception as e:
-            logger.error(f"Error retrieving commits for {self.repo_slug}: {str(e)}")
-            return json.dumps({"error": str(e)})
-
-    def list_all_pull_requests(self, state: str = "OPEN") -> str:
-        """
-        Retrieves all pull requests for a repository.
-
-        Args:
-            state (str, optional): The state of the pull requests to retrieve.
-
-        Returns:
-            str: A JSON string containing all pull requests.
-        """
-        try:
-            if state not in ["OPEN", "MERGED", "DECLINED", "SUPERSEDED"]:
-                logger.debug(f"Invalid pull request state: {state}. Defaulting to OPEN")
-                state = "OPEN"
-
-            params = {"state": state}
-
-            pull_requests = self._make_request(
-                "GET", f"/repositories/{self.workspace}/{self.repo_slug}/pullrequests", params=params
-            )
-
-            return json.dumps(pull_requests, indent=2)
-        except Exception as e:
-            logger.error(f"Error retrieving pull requests for {self.repo_slug}: {str(e)}")
-            return json.dumps({"error": str(e)})
-
-    def get_pull_request_details(self, pull_request_id: int) -> str:
-        """
-        Retrieves a pull request for a repository.
-        Args:
-            pull_request_id (int): The ID of the pull request to retrieve.
-
-        Returns:
-            str: A JSON string containing the pull request.
-        """
-        try:
-            pull_request = self._make_request(
-                "GET", f"/repositories/{self.workspace}/{self.repo_slug}/pullrequests/{pull_request_id}"
-            )
-            return json.dumps(pull_request, indent=2)
-        except Exception as e:
-            logger.error(f"Error retrieving pull requests for {self.repo_slug}: {str(e)}")
-            return json.dumps({"error": str(e)})
-
-    def get_pull_request_changes(self, pull_request_id: int) -> str:
-        """
-        Retrieves changes for a pull request in a repository.
-
-        Args:
-            pull_request_id (int): The ID of the pull request to retrieve.
-
-        Returns:
-            str: A markdown string containing the pull request diff.
-        """
-        try:
-            diff = self._make_request(
-                "GET", f"/repositories/{self.workspace}/{self.repo_slug}/pullrequests/{pull_request_id}/diff"
-            )
-            if isinstance(diff, dict):
-                return json.dumps(diff, indent=2)
-            return diff
-        except Exception as e:
-            logger.error(f"Error retrieving changes for pull request {pull_request_id} in {self.repo_slug}: {str(e)}")
-            return json.dumps({"error": str(e)})
-
-    def list_issues(self, count: int = 10) -> str:
-        """
-        Retrieves all issues for a repository.
-
-        Args:
-            count (int, optional): The number of issues to retrieve. Defaults to 10. Maximum 50.
-
-        Returns:
-            str: A JSON string containing all issues.
-        """
-        try:
-            count = min(count, 50)
-            params = {"pagelen": count}
-
-            issues = self._make_request("GET", f"/repositories/{self.workspace}/{self.repo_slug}/issues", params=params)
-
-            return json.dumps(issues, indent=2)
-        except Exception as e:
-            logger.error(f"Error retrieving issues for {self.repo_slug}: {str(e)}")
-            return json.dumps({"error": str(e)})
+            return {"status": "error", "data": None, "message": str(e)}

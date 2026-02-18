@@ -1,5 +1,8 @@
 import os
-import httpx
+try:
+    import httpx
+except ImportError:
+    httpx = None
 from typing import Any, Dict, Optional, Union
 from omnicoreagent.core.tools.local_tools_registry import Tool
 
@@ -7,6 +10,8 @@ class TelegramSendMessage:
     """Telegram Send Message Tool."""
 
     def __init__(self, chat_id: Union[str, int, None] = None, token: Optional[str] = None):
+        if httpx is None:
+            raise ImportError("`httpx` not installed. Please install using `pip install httpx`")
         self.token = token or os.getenv("TELEGRAM_TOKEN")
         self.chat_id = chat_id 
         self.base_url = "https://api.telegram.org"

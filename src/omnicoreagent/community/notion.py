@@ -6,19 +6,21 @@ from omnicoreagent.core.tools.local_tools_registry import Tool
 try:
     from notion_client import Client
 except ImportError:
-    pass
+    Client = None
 
 class NotionBase:
     def __init__(self, api_key: Optional[str] = None):
+        if Client is None:
+             raise ImportError(
+                 "Could not import `notion-client` python package. "
+                 "Please install it with `pip install notion-client`."
+             )
         self.api_key = api_key or os.getenv("NOTION_API_KEY")
     
     def _get_client(self):
         if not self.api_key:
             raise ValueError("NOTION_API_KEY required.")
-        try:
-            return Client(auth=self.api_key)
-        except NameError:
-             raise ImportError("`notion-client` not installed.")
+        return Client(auth=self.api_key)
 
 class NotionCreatePage(NotionBase):
     def __init__(self, api_key: Optional[str] = None, database_id: Optional[str] = None):

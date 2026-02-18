@@ -2,15 +2,21 @@ import json
 from os import getenv
 from typing import Any, Dict, Optional
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.utils import logger
 
 try:
     from browserbase import Browserbase
 except ImportError:
-    pass
+    Browserbase = None
 
 class BrowserbaseBase:
     def __init__(self, api_key: Optional[str] = None, project_id: Optional[str] = None):
+        if Browserbase is None:
+            raise ImportError(
+                "Could not import `browserbase` python package. "
+                "Please install it with `pip install browserbase`."
+            )
+            
         self.api_key = api_key or getenv("BROWSERBASE_API_KEY")
         self.project_id = project_id or getenv("BROWSERBASE_PROJECT_ID")
         self.app = None
@@ -18,7 +24,7 @@ class BrowserbaseBase:
             try:
                 self.app = Browserbase(api_key=self.api_key)
             except Exception:
-                pass
+                self.app = None
 
 class BrowserbaseSessionTool(BrowserbaseBase):
     def get_tool(self) -> Tool:

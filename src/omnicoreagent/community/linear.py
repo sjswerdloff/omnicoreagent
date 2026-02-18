@@ -1,12 +1,17 @@
 import json
 from os import getenv
 from typing import Any, Dict, Optional
-import requests
+try:
+    import requests
+except ImportError:
+    requests = None
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.utils import logger
 
 class LinearBase:
     def __init__(self, api_key: Optional[str] = None):
+        if requests is None:
+            raise ImportError("`requests` not installed. Please install using `pip install requests`")
         self.api_key = api_key or getenv("LINEAR_API_KEY")
         self.endpoint = "https://api.linear.app/graphql"
         self.headers = {"Authorization": f"{self.api_key}"}

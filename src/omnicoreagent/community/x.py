@@ -6,7 +6,7 @@ from omnicoreagent.core.tools.local_tools_registry import Tool
 try:
     import tweepy
 except ImportError:
-    pass
+    tweepy = None
 
 class XBase:
     def __init__(self, bearer_token: Optional[str] = None, **kwargs):
@@ -15,6 +15,12 @@ class XBase:
         self.consumer_secret = kwargs.get("consumer_secret") or os.getenv("X_CONSUMER_SECRET")
         self.access_token = kwargs.get("access_token") or os.getenv("X_ACCESS_TOKEN")
         self.access_token_secret = kwargs.get("access_token_secret") or os.getenv("X_ACCESS_TOKEN_SECRET")
+        
+        if tweepy is None:
+            raise ImportError(
+                "Could not import `tweepy` python package. "
+                "Please install it with `pip install tweepy`."
+            )
 
     def _get_client(self):
         try:
@@ -25,8 +31,6 @@ class XBase:
                 access_token=self.access_token,
                 access_token_secret=self.access_token_secret,
             )
-        except NameError:
-             raise ImportError("`tweepy` not installed.")
         except Exception as e:
             raise ValueError(f"Error creating X client: {e}")
 

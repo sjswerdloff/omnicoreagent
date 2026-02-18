@@ -1,187 +1,111 @@
 import json
 from os import getenv
-from typing import Any, Dict, List, Optional, Union
-from uuid import uuid4
+from typing import Any, Dict, List, Optional
+import base64
 
-from agno.agent import Agent
-from omnicoreagent.utils.media import Audio
-from agno.team.team import Team
-from omnicoreagent.community import Toolkit
-from omnicoreagent.community.function import ToolResult
-from omnicoreagent.utils.log import log_debug, log_error, log_info
+from omnicoreagent.core.tools.local_tools_registry import Tool
+from omnicoreagent.core.utils import log_debug, log_error, log_info
 
 try:
-    import cartesia  # type: ignore
+    import cartesia
 except ImportError:
-    raise ImportError("`cartesia` not installed. Please install using `pip install cartesia`")
+    cartesia = None
 
-
-class CartesiaTools(Toolkit):
+class CartesiaTools:
     def __init__(
         self,
         api_key: Optional[str] = None,
         model_id: str = "sonic-2",
         default_voice_id: str = "78ab82d5-25be-4f7d-82b3-7ad64e5b85b2",
-        enable_text_to_speech: bool = True,
-        enable_list_voices: bool = True,
-        enable_localize_voice: bool = False,
-        all: bool = False,
-        **kwargs,
     ):
+        if cartesia is None:
+            raise ImportError(
+                "Could not import `cartesia` python package. "
+                "Please install it using `pip install cartesia`."
+            )
         self.api_key = api_key or getenv("CARTESIA_API_KEY")
-
-        if not self.api_key:
-            raise ValueError("CARTESIA_API_KEY not set. Please set the CARTESIA_API_KEY environment variable.")
-
-        self.client = cartesia.Cartesia(api_key=self.api_key)
+        self.client = None
+        if self.api_key:
+            try:
+                self.client = cartesia.Cartesia(api_key=self.api_key)
+            except Exception:
+                self.client = None
+                
         self.model_id = model_id
         self.default_voice_id = default_voice_id
 
-        tools: List[Any] = []
-        if all or enable_localize_voice:
-            tools.append(self.localize_voice)
-        if all or enable_text_to_speech:
-            tools.append(self.text_to_speech)
-        if all or enable_list_voices:
-            tools.append(self.list_voices)
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="cartesia_list_voices",
+             description="List available voices from Cartesia.",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+            },
+            function=self._list_voices,
+        )
 
-        super().__init__(name="cartesia_tools", tools=tools, **kwargs)
-
-    def list_voices(self) -> str:
-        """List available voices from Cartesia (first page).
-
-        Returns:
-            str: JSON string containing a list of voices, each with id, name, description, and language.
-        """
+    async def _list_voices(self) -> Dict[str, Any]:
+        if not self.client: return {"status": "error", "data": None, "message": "Client not initialized"}
         try:
             voices = self.client.voices.list()
-
-            voice_objects = voices.items if voices else None
-
-            filtered_result = []
-            if voice_objects:
-                for voice in voice_objects:
-                    try:
-                        # Extract desired attributes from the Voice object
-                        voice_data = {
-                            "id": voice.id if hasattr(voice, "id") else None,
-                            "name": voice.name if hasattr(voice, "name") else None,
-                            "description": voice.description if hasattr(voice, "description") else None,
-                            "language": voice.language if hasattr(voice, "language") else None,
-                        }
-
-                        if voice_data["id"]:  # Only add if we could get an ID
-                            filtered_result.append(voice_data)
-                        else:
-                            log_info(f"Could not extract 'id' from voice object: {voice}")
-                    except AttributeError as ae:
-                        log_error(f"AttributeError accessing voice data: {ae}. Voice data: {voice}")
-                        continue
-                    except Exception as inner_e:
-                        log_error(f"Unexpected error processing voice: {inner_e}. Voice data: {voice}")
-                        continue
-
-            return json.dumps(filtered_result, indent=4)
+            voice_objects = voices.items if voices else []
+            
+            results = []
+            for v in voice_objects:
+                if hasattr(v, 'id'):
+                    results.append({
+                        "id": v.id, 
+                        "name": getattr(v, 'name', ''), 
+                        "language": getattr(v, 'language', '')
+                    })
+            return {"status": "success", "data": results, "message": f"Found {len(results)} voices"}
         except Exception as e:
-            log_error(f"Error listing voices from Cartesia: {e}", exc_info=True)
-            return json.dumps({"error": str(e), "detail": "Error occurred in list_voices function."})
+            return {"status": "error", "data": None, "message": str(e)}
 
-    def localize_voice(
-        self,
-        name: str,
-        description: str,
-        language: str,
-        original_speaker_gender: str,
-        voice_id: Optional[str] = None,
-    ) -> str:
-        """Create a new voice localized to a different language.
+class CartesiaTTS(CartesiaTools):
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="cartesia_text_to_speech",
+            description="Convert text to speech.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "transcript": {"type": "string"},
+                    "voice_id": {"type": "string"},
+                },
+                "required": ["transcript"],
+            },
+            function=self._text_to_speech,
+        )
 
-        Args:
-            name (str): The desired name for the new localized voice.
-            description (str): The description for the new localized voice.
-            language (str): The target language code (e.g., 'fr', 'es').
-            original_speaker_gender (str): The gender of the original speaker ("male" or "female").
-            voice_id (optional): The ID of an existing voice to use as the base. If None, uses the default voice ID configured in the tool. Defaults to None.
-
-        Returns:
-            str: JSON string containing the information of the newly created localized voice, including its 'id'.
-        """
-        localize_voice_id = voice_id or self.default_voice_id
-        log_debug(f"Using voice_id '{localize_voice_id}' for localization.")
-
-        try:
-            result = self.client.voices.localize(
-                voice_id=localize_voice_id,
-                name=name,
-                description=description,
-                language=language,
-                original_speaker_gender=original_speaker_gender,
-            )
-
-            if isinstance(result, dict):
-                return json.dumps(result, indent=4)
-            else:
-                return result.model_dump_json(indent=4)
-
-        except Exception as e:
-            log_error(f"Error localizing voice with Cartesia: {e}", exc_info=True)
-            return json.dumps({"error": str(e), "type": type(e).__name__})
-
-    def text_to_speech(
-        self,
-        agent: Union[Agent, Team],
-        transcript: str,
-        voice_id: Optional[str] = None,
-    ) -> ToolResult:
-        """
-        Convert text to speech.
-        Args:
-            transcript: The text to convert to speech
-            voice_id (optional): The ID of the voice to use for the text-to-speech. If None, uses the default voice ID configured in the tool. Defaults to None.
-
-        Returns:
-            ToolResult: A ToolResult containing the generated audio or error message.
-        """
-
+    async def _text_to_speech(self, transcript: str, voice_id: Optional[str] = None) -> Dict[str, Any]:
+        if not self.client: return {"status": "error", "data": None, "message": "Client not initialized"}
+        
         try:
             effective_voice_id = voice_id or self.default_voice_id
-
-            log_info(f"Using voice_id: {effective_voice_id} for text_to_speech.")
-            log_info(f"Using model_id: {self.model_id} for text_to_speech.")
-
-            output_format_sample_rate = 44100
-            requested_bit_rate = 128000
-            mime_type = "audio/mpeg"
-
+            
             output_format = {
                 "container": "mp3",
-                "sample_rate": output_format_sample_rate,
-                "bit_rate": requested_bit_rate,
+                "sample_rate": 44100,
+                "bit_rate": 128000,
                 "encoding": "mp3",
             }
 
-            params: Dict[str, Any] = {
-                "model_id": self.model_id,
-                "transcript": transcript,
-                "voice": {"mode": "id", "id": effective_voice_id},
-                "output_format": output_format,
-            }
-
-            audio_iterator = self.client.tts.bytes(**params)
+            audio_iterator = self.client.tts.bytes(
+                model_id=self.model_id,
+                transcript=transcript,
+                voice={"mode": "id", "id": effective_voice_id},
+                output_format=output_format,
+            )
+            
             audio_data = b"".join(chunk for chunk in audio_iterator)
-
-            # Create AudioArtifact
-            audio_artifact = Audio(
-                id=str(uuid4()),
-                content=audio_data,
-                mime_type=mime_type,  # Hardcoded to audio/mpeg
-            )
-
-            return ToolResult(
-                content="Audio generated and attached successfully.",
-                audios=[audio_artifact],
-            )
-
+            b64_audio = base64.b64encode(audio_data).decode('utf-8')
+            
+            return {
+                "status": "success", 
+                "data": {"audio_base64_length": len(b64_audio)}, 
+                "message": "Speech generated successfully"
+            }
         except Exception as e:
-            log_error(f"Error generating speech with Cartesia: {e}", exc_info=True)
-            return ToolResult(content=f"Error generating speech: {e}")
+            return {"status": "error", "data": None, "message": str(e)}

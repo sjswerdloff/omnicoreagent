@@ -2,13 +2,14 @@ import json
 from os import getenv
 from typing import Any, Dict, List, Optional
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.utils import logger
 
 try:
     from atlassian import Confluence
     import requests
 except ImportError:
-    pass
+    Confluence = None
+    requests = None
 
 class ConfluenceBase:
     def __init__(self, url: Optional[str] = None, username: Optional[str] = None, api_key: Optional[str] = None):
@@ -20,15 +21,21 @@ class ConfluenceBase:
             # We allow init without creds for Import testing, but methods will fail
             pass
         
-        try:
-            self.confluence = Confluence(
-                url=self.url,
-                username=self.username,
-                password=self.password,
-                cloud=True 
+        if Confluence is None:
+            raise ImportError(
+                "Could not import `atlassian-python-api` python package. "
+                "Please install it using `pip install atlassian-python-api`."
             )
-        except:
-            self.confluence = None
+        else:
+            try:
+                self.confluence = Confluence(
+                    url=self.url,
+                    username=self.username,
+                    password=self.password,
+                    cloud=True 
+                )
+            except:
+                self.confluence = None
 
 class ConfluenceGetPage(ConfluenceBase):
     def get_tool(self) -> Tool:

@@ -1,61 +1,38 @@
 import json
 from os import getenv
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
-from omnicoreagent.community import Toolkit
-from omnicoreagent.utils.log import log_debug, log_error, log_warning
+from omnicoreagent.core.tools.local_tools_registry import Tool
+from omnicoreagent.core.utils import log_debug, log_error, log_warning
 
 try:
     from valyu import Valyu
 except ImportError:
-    raise ImportError("`valyu` not installed. Please install using `pip install valyu`")
+    Valyu = None
 
 
-class ValyuTools(Toolkit):
-    """
-    Valyu is a toolkit for academic and web search capabilities.
 
-    Args:
-        api_key (Optional[str]): Valyu API key. Retrieved from VALYU_API_KEY env variable if not provided.
-        enable_academic_search (bool): Enable academic sources search functionality. Default is True.
-        enable_web_search (bool): Enable web search functionality. Default is True.
-        enable_paper_search (bool): Enable search within paper functionality. Default is True.
-        all (bool): Enable all tools. Overrides individual flags when True. Default is False.
-        text_length (int): Maximum length of text content per result. Default is 1000.
-        max_results (int): Maximum number of results to return. Default is 10.
-        relevance_threshold (float): Minimum relevance score for results. Default is 0.5.
-        content_category (Optional[str]): Content category for filtering.
-        search_start_date (Optional[str]): Start date for search filtering (YYYY-MM-DD).
-        search_end_date (Optional[str]): End date for search filtering (YYYY-MM-DD).
-        search_domains (Optional[List[str]]): List of domains to search within.
-        sources (Optional[List[str]]): List of specific sources to search.
-        max_price (float): Maximum price for API calls. Default is 30.0.
-        tool_call_mode (bool): Enable tool call mode. Default is False.
-    """
-
+class ValyuTools:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        enable_academic_search: bool = True,
-        enable_web_search: bool = True,
-        enable_paper_search: bool = True,
-        all: bool = False,
         text_length: int = 1000,
         max_results: int = 10,
         relevance_threshold: float = 0.5,
+        max_price: float = 30.0,
         content_category: Optional[str] = None,
         search_start_date: Optional[str] = None,
         search_end_date: Optional[str] = None,
-        search_domains: Optional[List[str]] = None,
         sources: Optional[List[str]] = None,
-        max_price: float = 30.0,
         tool_call_mode: bool = False,
-        **kwargs,
     ):
         self.api_key = api_key or getenv("VALYU_API_KEY")
         if not self.api_key:
-            raise ValueError("VALYU_API_KEY not set. Please set the VALYU_API_KEY environment variable.")
-
+            raise ValueError("VALYU_API_KEY not set.")
+        
+        if Valyu is None:
+            raise ImportError("`valyu` not installed. Please install using `pip install valyu`")
+            
         self.valyu = Valyu(api_key=self.api_key)
         self.text_length = text_length
         self.max_results = max_results
@@ -64,61 +41,32 @@ class ValyuTools(Toolkit):
         self.content_category = content_category
         self.search_start_date = search_start_date
         self.search_end_date = search_end_date
-        self.search_domains = search_domains
         self.sources = sources
         self.tool_call_mode = tool_call_mode
 
-        tools: List[Any] = []
-        if all or enable_academic_search:
-            tools.append(self.search_academic_sources)
-        if all or enable_web_search:
-            tools.append(self.search_web)
-        if all or enable_paper_search:
-            tools.append(self.search_within_paper)
-
-        super().__init__(name="valyu_search", tools=tools, **kwargs)
-
-    def _parse_results(self, results: List[Any]) -> str:
-        parsed_results = []
-        for result in results:
-            result_dict = {}
-
-            # Essential fields
-            if hasattr(result, "url") and result.url:
-                result_dict["url"] = result.url
-            if hasattr(result, "title") and result.title:
-                result_dict["title"] = result.title
-            if hasattr(result, "source") and result.source:
-                result_dict["source"] = result.source
-            if hasattr(result, "relevance_score"):
-                result_dict["relevance_score"] = result.relevance_score
-
-            # Content with length limiting
-            if hasattr(result, "content") and result.content:
-                content = result.content
+    def _parse_results(self, results: List[Any]) -> List[Dict[str, Any]]:
+        parsed = []
+        for r in results:
+            d: Dict[str, Any] = {}
+            if hasattr(r, "url") and r.url:
+                d["url"] = r.url
+            if hasattr(r, "title") and r.title:
+                d["title"] = r.title
+            if hasattr(r, "source") and r.source:
+                d["source"] = r.source
+            if hasattr(r, "relevance_score"):
+                d["relevance_score"] = r.relevance_score
+            if hasattr(r, "content") and r.content:
+                content = r.content
                 if self.text_length and len(content) > self.text_length:
-                    content = content[: self.text_length] + "..."
-                result_dict["content"] = content
+                    content = content[:self.text_length] + "..."
+                d["content"] = content
+            parsed.append(d)
+        return parsed
 
-            # Additional metadata
-            if hasattr(result, "description") and result.description:
-                result_dict["description"] = result.description
-
-            parsed_results.append(result_dict)
-
-        return json.dumps(parsed_results, indent=2)
-
-    def _valyu_search(
-        self,
-        query: str,
-        search_type: str,
-        content_category: Optional[str] = None,
-        sources: Optional[List[str]] = None,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-    ) -> str:
+    def _valyu_search(self, query: str, search_type: str, **kwargs) -> Dict[str, Any]:
         try:
-            search_params = {
+            params = {
                 "query": query,
                 "search_type": search_type,
                 "max_num_results": self.max_results,
@@ -126,103 +74,84 @@ class ValyuTools(Toolkit):
                 "relevance_threshold": self.relevance_threshold,
                 "max_price": self.max_price,
             }
+            if kwargs.get("sources") or self.sources:
+                params["included_sources"] = kwargs.get("sources") or self.sources
+            if kwargs.get("content_category") or self.content_category:
+                params["category"] = kwargs.get("content_category") or self.content_category
+            if kwargs.get("start_date") or self.search_start_date:
+                params["start_date"] = kwargs.get("start_date") or self.search_start_date
+            if kwargs.get("end_date") or self.search_end_date:
+                params["end_date"] = kwargs.get("end_date") or self.search_end_date
 
-            # Add optional parameters
-            if sources or self.sources:
-                search_params["included_sources"] = sources or self.sources
-            if content_category or self.content_category:
-                search_params["category"] = content_category or self.content_category
-            if start_date or self.search_start_date:
-                search_params["start_date"] = start_date or self.search_start_date
-            if end_date or self.search_end_date:
-                search_params["end_date"] = end_date or self.search_end_date
-
-            log_debug(f"Valyu search parameters: {search_params}")
-            response = self.valyu.search(**search_params)
-
+            response = self.valyu.search(**params)
             if not response.success:
-                log_error(f"Valyu search API error: {response.error}")
-                return f"Error: {response.error or 'Search request failed'}"
-
-            return self._parse_results(response.results or [])
-
+                return {"status": "error", "data": None, "message": response.error or "Search failed"}
+            data = self._parse_results(response.results or [])
+            return {"status": "success", "data": data, "message": f"Found {len(data)} results"}
         except Exception as e:
-            error_msg = f"Valyu search failed: {str(e)}"
-            log_error(error_msg)
-            return f"Error: {error_msg}"
+            log_error(f"Valyu search failed: {e}")
+            return {"status": "error", "data": None, "message": str(e)}
 
-    def search_academic_sources(
-        self,
-        query: str,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-    ) -> str:
-        """Search academic sources (ArXiv, PubMed, academic publishers).
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="valyu_search_academic",
+            description="Search academic sources (ArXiv, PubMed) using Valyu.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string"},
+                    "start_date": {"type": "string", "description": "YYYY-MM-DD"},
+                    "end_date": {"type": "string", "description": "YYYY-MM-DD"},
+                },
+                "required": ["query"],
+            },
+            function=self._search_academic,
+        )
 
-        Args:
-            query: Research question or topic
-            start_date: Filter papers after this date (YYYY-MM-DD)
-            end_date: Filter papers before this date (YYYY-MM-DD)
-
-        Returns:
-            JSON array of academic papers
-        """
+    async def _search_academic(self, query: str, start_date: Optional[str] = None, end_date: Optional[str] = None) -> Dict[str, Any]:
         sources = ["valyu/valyu-arxiv", "valyu/valyu-pubmed", "wiley/wiley-finance-papers", "wiley/wiley-finance-books"]
+        return self._valyu_search(query, "proprietary", sources=sources, start_date=start_date, end_date=end_date)
 
-        return self._valyu_search(
-            query=query,
-            search_type="proprietary",
-            sources=sources,
-            start_date=start_date,
-            end_date=end_date,
+
+class ValyuSearchWeb(ValyuTools):
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="valyu_search_web",
+            description="Search the web using Valyu.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string"},
+                    "start_date": {"type": "string"},
+                    "end_date": {"type": "string"},
+                    "content_category": {"type": "string"},
+                },
+                "required": ["query"],
+            },
+            function=self._search_web,
         )
 
-    def search_web(
-        self,
-        query: str,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        content_category: Optional[str] = None,
-    ) -> str:
-        """Search web sources for real-time information.
+    async def _search_web(self, query: str, start_date: Optional[str] = None, end_date: Optional[str] = None, content_category: Optional[str] = None) -> Dict[str, Any]:
+        return self._valyu_search(query, "web", content_category=content_category, start_date=start_date, end_date=end_date)
 
-        Args:
-            query: Search query
-            start_date: Filter content after this date (YYYY-MM-DD)
-            end_date: Filter content before this date (YYYY-MM-DD)
-            content_category: Description of the category of the query
 
-        Returns:
-            JSON array of web search results
-        """
-        return self._valyu_search(
-            query=query,
-            search_type="web",
-            content_category=content_category,
-            start_date=start_date,
-            end_date=end_date,
+class ValyuSearchPaper(ValyuTools):
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="valyu_search_paper",
+            description="Search within a specific ArXiv paper using Valyu.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "paper_url": {"type": "string"},
+                    "query": {"type": "string"},
+                },
+                "required": ["paper_url", "query"],
+            },
+            function=self._search_paper,
         )
 
-    def search_within_paper(
-        self,
-        paper_url: str,
-        query: str,
-    ) -> str:
-        """Search within a specific ArXiv paper.
-
-        Args:
-            paper_url: ArXiv paper URL
-            query: Search query
-        Returns:
-            JSON array of relevant sections from the paper
-        """
-        # Validate ArXiv URL
+    async def _search_paper(self, paper_url: str, query: str) -> Dict[str, Any]:
         if not paper_url.startswith("https:/"):
-            log_warning(f"Invalid paper URL: {paper_url}")
-            return "Error: Invalid paper URL format"
-
-        return self._valyu_search(
-            query=query,
-            search_type="proprietary",
-            sources=[paper_url],
-        )
+            return {"status": "error", "data": None, "message": "Invalid paper URL"}
+        return self._valyu_search(query, "proprietary", sources=[paper_url])

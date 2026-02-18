@@ -2,18 +2,20 @@ import json
 from os import getenv
 from typing import Any, Dict, List, Optional
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.utils import logger
 
 try:
     from scrapegraph_py import Client
 except ImportError:
-    pass
+    Client = None
 
 class ScrapeGraphBase:
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or getenv("SGAI_API_KEY")
         self.client = None
-        if self.api_key:
+        if Client is None:
+             raise ImportError("scrapegraph-py not installed. Please install it using `pip install scrapegraph-py`.")
+        elif self.api_key:
             try:
                 self.client = Client(api_key=self.api_key)
             except Exception:

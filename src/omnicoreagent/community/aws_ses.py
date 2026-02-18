@@ -5,10 +5,15 @@ from omnicoreagent.core.tools.local_tools_registry import Tool
 try:
     import boto3
 except ImportError:
-    pass
+    boto3 = None
 
 class AWSSETSendEmail:
     def __init__(self, sender_email: Optional[str] = None, region_name: str = "us-east-1"):
+        if boto3 is None:
+            raise ImportError(
+                "Could not import `boto3` python package. "
+                "Please install it using `pip install boto3`."
+            )
         self.sender_email = sender_email
         self.region_name = region_name
 

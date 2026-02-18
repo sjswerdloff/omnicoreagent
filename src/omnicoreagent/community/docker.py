@@ -6,14 +6,19 @@ from omnicoreagent.core.tools.local_tools_registry import Tool
 try:
     import docker
 except ImportError:
-    pass
+    docker = None
 
 class DockerBase:
+    def __init__(self):
+        if docker is None:
+            raise ImportError(
+                "Could not import `docker` python package. "
+                "Please install it using `pip install docker`."
+            )
+
     def _get_client(self):
         try:
             return docker.from_env()
-        except NameError:
-             raise ImportError("docker package not installed.")
         except Exception as e:
              raise ValueError(f"Docker client error: {e}")
 

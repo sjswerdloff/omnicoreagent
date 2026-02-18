@@ -1,62 +1,48 @@
 from os import getenv
-from typing import Any, List, Optional
+from typing import Any, Dict, Optional
 
-from omnicoreagent.community import Toolkit
-from omnicoreagent.utils.log import log_info, logger
+from omnicoreagent.core.tools.local_tools_registry import Tool
+from omnicoreagent.core.utils import log_info, logger
 
 try:
     import resend  # type: ignore
 except ImportError:
-    raise ImportError("`resend` not installed. Please install using `pip install resend`.")
+    resend = None  # type: ignore
 
 
-class ResendTools(Toolkit):
-    def __init__(
-        self,
-        api_key: Optional[str] = None,
-        from_email: Optional[str] = None,
-        enable_send_email: bool = True,
-        all: bool = False,
-        **kwargs,
-    ):
+class ResendTools:
+    def __init__(self, api_key: Optional[str] = None, from_email: Optional[str] = None):
+        if resend is None:
+            raise ImportError("`resend` not installed. Please install using `pip install resend`.")
         self.from_email = from_email
         self.api_key = api_key or getenv("RESEND_API_KEY")
         if not self.api_key:
-            logger.error("No Resend API key provided")
+            logger.error("RESEND_API_KEY not set.")
 
-        tools: List[Any] = []
-        if all or enable_send_email:
-            tools.append(self.send_email)
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="resend_send_email",
+            description="Send an email using the Resend API.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "to_email": {"type": "string"},
+                    "subject": {"type": "string"},
+                    "body": {"type": "string", "description": "HTML body of the email"},
+                },
+                "required": ["to_email", "subject", "body"],
+            },
+            function=self._send_email,
+        )
 
-        super().__init__(name="resend_tools", tools=tools, **kwargs)
-
-    def send_email(self, to_email: str, subject: str, body: str) -> str:
-        """Send an email using the Resend API. Returns if the email was sent successfully or an error message.
-
-        :to_email: The email address to send the email to.
-        :subject: The subject of the email.
-        :body: The body of the email.
-        :return: A string indicating if the email was sent successfully or an error message.
-        """
-
+    async def _send_email(self, to_email: str, subject: str, body: str) -> Dict[str, Any]:
         if not self.api_key:
-            return "Please provide an API key"
-        if not to_email:
-            return "Please provide an email address to send the email to"
-
-        log_info(f"Sending email to: {to_email}")
-
-        resend.api_key = self.api_key
+            return {"status": "error", "data": None, "message": "RESEND_API_KEY not set"}
         try:
-            params = {
-                "from": self.from_email,
-                "to": to_email,
-                "subject": subject,
-                "html": body,
-            }
-
-            resend.Emails.send(params)
-            return f"Email sent to {to_email} successfully."
+            resend.api_key = self.api_key
+            params = {"from": self.from_email, "to": to_email, "subject": subject, "html": body}
+            result = resend.Emails.send(params)
+            return {"status": "success", "data": result, "message": f"Email sent to {to_email}"}
         except Exception as e:
-            logger.error(f"Failed to send email {e}")
-            return f"Error: {e}"
+            logger.error(f"Failed to send email: {e}")
+            return {"status": "error", "data": None, "message": str(e)}

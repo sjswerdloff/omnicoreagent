@@ -1,116 +1,96 @@
 import json
+from typing import Any, Dict, List, Optional
+
+from omnicoreagent.core.tools.local_tools_registry import Tool
+from omnicoreagent.core.utils import log_info, logger
 
 try:
     from spider import Spider as ExternalSpider
 except ImportError:
-    raise ImportError("`spider-client` not installed. Please install using `pip install spider-client`")
-
-from typing import Any, List, Optional
-
-from omnicoreagent.community import Toolkit
-from omnicoreagent.utils.log import log_info, logger
+    ExternalSpider = None
 
 
-class SpiderTools(Toolkit):
-    """
-    Spider is a toolkit for web searching, scraping, and crawling.
 
-    Args:
-        enable_search (bool): Enable web search functionality. Default is True.
-        enable_scrape (bool): Enable web scraping functionality. Default is True.
-        enable_crawl (bool): Enable web crawling functionality. Default is True.
-        all (bool): Enable all tools. Overrides individual flags when True. Default is False.
-        max_results (Optional[int]): Default maximum number of results.
-        url (Optional[str]): Default URL for operations.
-        optional_params (Optional[dict]): Additional parameters for operations.
-    """
-
-    def __init__(
-        self,
-        max_results: Optional[int] = None,
-        url: Optional[str] = None,
-        optional_params: Optional[dict] = None,
-        enable_search: bool = True,
-        enable_scrape: bool = True,
-        enable_crawl: bool = True,
-        all: bool = False,
-        **kwargs,
-    ):
+class SpiderTools:
+    def __init__(self, max_results: Optional[int] = None, optional_params: Optional[dict] = None):
+        if ExternalSpider is None:
+            raise ImportError("`spider-client` not installed. Please install using `pip install spider-client`")
         self.max_results = max_results
-        self.url = url
         self.optional_params = optional_params or {}
 
-        tools: List[Any] = []
-        if enable_search or all:
-            tools.append(self.search_web)
-        if enable_scrape or all:
-            tools.append(self.scrape)
-        if enable_crawl or all:
-            tools.append(self.crawl)
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="spider_search",
+            description="Search the web using Spider.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string"},
+                    "max_results": {"type": "integer", "default": 5},
+                },
+                "required": ["query"],
+            },
+            function=self._search,
+        )
 
-        super().__init__(name="spider", tools=tools, **kwargs)
-
-    def search_web(self, query: str, max_results: int = 5) -> str:
-        """Use this function to search the web.
-        Args:
-            query (str): The query to search the web with.
-            max_results (int, optional): The maximum number of results to return. Defaults to 5.
-        Returns:
-            The results of the search.
-        """
-        max_results = self.max_results or max_results
-        return self._search(query, max_results=max_results)
-
-    def scrape(self, url: str) -> str:
-        """Use this function to scrape the content of a webpage.
-        Args:
-            url (str): The URL of the webpage to scrape.
-        Returns:
-            Markdown of the webpage.
-        """
-        return self._scrape(url)
-
-    def crawl(self, url: str, limit: Optional[int] = None) -> str:
-        """Use this function to crawl the web.
-        Args:
-            url (str): The URL of the webpage to crawl.
-            limit (int, optional): The maximum number of pages to crawl. Defaults to 10.
-        Returns:
-            The results of the crawl.
-        """
-        return self._crawl(url, limit=limit)
-
-    def _search(self, query: str, max_results: int = 1) -> str:
-        app = ExternalSpider()
-        log_info(f"Fetching results from spider for query: {query} with max_results: {max_results}")
+    async def _search(self, query: str, max_results: int = 5) -> Dict[str, Any]:
         try:
-            options = {"fetch_page_content": False, "num": max_results, **self.optional_params}
+            app = ExternalSpider()
+            n = self.max_results or max_results
+            options = {"fetch_page_content": False, "num": n, **self.optional_params}
             results = app.search(query, options)
-            return json.dumps(results)
+            return {"status": "success", "data": results, "message": f"Search completed"}
         except Exception as e:
-            logger.error(f"Error fetching results from spider: {e}")
-            return f"Error fetching results from spider: {e}"
+            logger.error(f"Spider search failed: {e}")
+            return {"status": "error", "data": None, "message": str(e)}
 
-    def _scrape(self, url: str) -> str:
-        app = ExternalSpider()
-        log_info(f"Fetching content from spider for url: {url}")
+
+class SpiderScrape(SpiderTools):
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="spider_scrape",
+            description="Scrape content from a webpage using Spider.",
+            inputSchema={
+                "type": "object",
+                "properties": {"url": {"type": "string"}},
+                "required": ["url"],
+            },
+            function=self._scrape,
+        )
+
+    async def _scrape(self, url: str) -> Dict[str, Any]:
         try:
+            app = ExternalSpider()
             options = {"return_format": "markdown", **self.optional_params}
             results = app.scrape_url(url, options)
-            return json.dumps(results)
+            return {"status": "success", "data": results, "message": f"Scraped {url}"}
         except Exception as e:
-            logger.error(f"Error fetching content from spider: {e}")
-            return f"Error fetching content from spider: {e}"
+            logger.error(f"Spider scrape failed: {e}")
+            return {"status": "error", "data": None, "message": str(e)}
 
-    def _crawl(self, url: str, limit: Optional[int] = None) -> str:
-        app = ExternalSpider()
-        log_info(f"Fetching content from spider for url: {url}")
+
+class SpiderCrawl(SpiderTools):
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="spider_crawl",
+            description="Crawl a website using Spider.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string"},
+                    "limit": {"type": "integer", "default": 10},
+                },
+                "required": ["url"],
+            },
+            function=self._crawl,
+        )
+
+    async def _crawl(self, url: str, limit: int = 10) -> Dict[str, Any]:
         try:
-            if limit is None:
-                limit = 10
+            app = ExternalSpider()
             options = {"return_format": "markdown", "limit": limit, **self.optional_params}
             results = app.crawl_url(url, options)
-            return json.dumps(results)
+            return {"status": "success", "data": results, "message": f"Crawled {url}"}
         except Exception as e:
-            logger.error(f"Error fetching content from spider: {e}")
-            return f"Error fetching content from spider: {e}"
+            logger.error(f"Spider crawl failed: {e}")
+            return {"status": "error", "data": None, "message": str(e)}

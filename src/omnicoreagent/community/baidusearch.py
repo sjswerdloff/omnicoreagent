@@ -1,30 +1,22 @@
 import json
 from typing import Any, Dict, List, Optional
-
-from omnicoreagent.community import Toolkit
-from omnicoreagent.utils.log import log_debug
+from omnicoreagent.core.tools.local_tools_registry import Tool
+from omnicoreagent.core.utils import log_debug
 
 try:
     from baidusearch.baidusearch import search  # type: ignore
 except ImportError:
-    raise ImportError("`baidusearch` not installed. Please install using `pip install baidusearch`")
+    search = None
 
 try:
     from pycountry import pycountry
 except ImportError:
-    raise ImportError("`pycountry` not installed. Please install using `pip install pycountry`")
+    pycountry = None
 
 
-class BaiduSearchTools(Toolkit):
+class BaiduSearchTools:
     """
     BaiduSearch is a toolkit for searching Baidu easily.
-
-    Args:
-        fixed_max_results (Optional[int]): A fixed number of maximum results.
-        fixed_language (Optional[str]): A fixed language for the search results.
-        headers (Optional[Any]): Headers to be used in the search request.
-        proxy (Optional[str]): Proxy to be used in the search request.
-        debug (Optional[bool]): Enable debug output.
     """
 
     def __init__(
@@ -35,34 +27,57 @@ class BaiduSearchTools(Toolkit):
         proxy: Optional[str] = None,
         timeout: Optional[int] = 10,
         debug: Optional[bool] = False,
-        enable_baidu_search: bool = True,
-        all: bool = False,
-        **kwargs,
     ):
         self.fixed_max_results = fixed_max_results
         self.fixed_language = fixed_language
         self.headers = headers
         self.proxy = proxy
         self.timeout = timeout
+        self.proxy = proxy
+        self.timeout = timeout
         self.debug = debug
+        
+        if search is None:
+            raise ImportError(
+                "Could not import `baidusearch` python package. "
+                "Please install it with `pip install baidusearch`."
+            )
+        if pycountry is None:
+            raise ImportError(
+                "Could not import `pycountry` python package. "
+                "Please install it with `pip install pycountry`."
+            )
 
-        tools = []
-        if all or enable_baidu_search:
-            tools.append(self.baidu_search)
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="baidu_search",
+            description="Execute Baidu search and return results.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Search keyword",
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "description": "Maximum number of results to return",
+                        "default": 5,
+                    },
+                    "language": {
+                        "type": "string",
+                        "description": "Search language",
+                        "default": "zh",
+                    },
+                },
+                "required": ["query"],
+            },
+            function=self._baidu_search,
+        )
 
-        super().__init__(name="baidusearch", tools=tools, **kwargs)
+    async def _baidu_search(self, query: str, max_results: int = 5, language: str = "zh") -> Dict[str, Any]:
+        """Execute Baidu search and return results"""
 
-    def baidu_search(self, query: str, max_results: int = 5, language: str = "zh") -> str:
-        """Execute Baidu search and return results
-
-        Args:
-            query (str): Search keyword
-            max_results (int, optional): Maximum number of results to return, default 5
-            language (str, optional): Search language, default Chinese
-
-        Returns:
-            str: A JSON formatted string containing the search results.
-        """
         max_results = self.fixed_max_results or max_results
         language = self.fixed_language or language
 
@@ -74,16 +89,29 @@ class BaiduSearchTools(Toolkit):
 
         log_debug(f"Searching Baidu [{language}] for: {query}")
 
-        results = search(keyword=query, num_results=max_results)
+        try:
+            # baidusearch.search is synchronous
+            results = baidusearch.baidusearch.search(keyword=query, num_results=max_results)
 
-        res: List[Dict[str, str]] = []
-        for idx, item in enumerate(results, 1):
-            res.append(
-                {
-                    "title": item.get("title", ""),
-                    "url": item.get("url", ""),
-                    "abstract": item.get("abstract", ""),
-                    "rank": str(idx),
-                }
-            )
-        return json.dumps(res, indent=2)
+            res: List[Dict[str, str]] = []
+            for idx, item in enumerate(results, 1):
+                res.append(
+                    {
+                        "title": item.get("title", ""),
+                        "url": item.get("url", ""),
+                        "abstract": item.get("abstract", ""),
+                        "rank": str(idx),
+                    }
+                )
+            
+            return {
+                "status": "success",
+                "data": res,
+                "message": f"Found {len(res)} results"
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "data": None,
+                "message": f"Error searching Baidu: {str(e)}"
+            }

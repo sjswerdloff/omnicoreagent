@@ -2,18 +2,20 @@ import json
 from os import getenv
 from typing import Any, Dict, List, Optional
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.utils import logger
 
 try:
     from todoist_api_python.api import TodoistAPI
 except ImportError:
-    pass
+    TodoistAPI = None
 
 class TodoistBase:
     def __init__(self, api_token: Optional[str] = None):
         self.api_token = api_token or getenv("TODOIST_API_TOKEN")
         self.api = None
-        if self.api_token:
+        if TodoistAPI is None:
+             raise ImportError("todoist-api-python not installed. Please install it using `pip install todoist-api-python`.")
+        elif self.api_token:
             try:
                 self.api = TodoistAPI(self.api_token)
             except Exception:

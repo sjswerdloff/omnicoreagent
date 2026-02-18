@@ -7,19 +7,19 @@ try:
     from slack_sdk import WebClient
     from slack_sdk.errors import SlackApiError
 except ImportError:
-    pass # Managed in methods
+    WebClient = None
+    SlackApiError = None
 
 class SlackBase:
     def __init__(self, token: Optional[str] = None):
+        if WebClient is None:
+             raise ImportError("Slack tools require the `slack_sdk` package. Please install it using `pip install slack_sdk`.")
         self.token = token or os.getenv("SLACK_TOKEN")
     
     def _get_client(self):
         if not self.token:
             raise ValueError("SLACK_TOKEN is not set")
-        try:
-             return WebClient(token=self.token)
-        except NameError:
-             raise ImportError("Slack tools require the `slack_sdk` package.")
+        return WebClient(token=self.token)
 
 class SlackSendMessage(SlackBase):
     def get_tool(self) -> Tool:

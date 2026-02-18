@@ -3,6 +3,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from omnicoreagent.core.tools.local_tools_registry import Tool
 
+try:
+    import arxiv
+except ImportError:
+    arxiv = None
+
 class ArxivTool:
     """Arxiv Tool integration."""
     def __init__(
@@ -35,14 +40,15 @@ class ArxivTool:
 
     async def _search_arxiv(self, query: str, num_articles: int = 10) -> Dict[str, Any]:
         """Search arXiv and return articles."""
-        try:
-            import arxiv
-        except ImportError:
-            return {
+    async def _search_arxiv(self, query: str, num_articles: int = 10) -> Dict[str, Any]:
+        """Search arXiv and return articles."""
+        if arxiv is None:
+             return {
                 "status": "error",
                 "data": None,
                 "message": "`arxiv` not installed. Please install using `pip install arxiv`"
             }
+
 
         client = arxiv.Client()
         formatted_results = []

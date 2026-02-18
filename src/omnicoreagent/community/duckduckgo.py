@@ -5,6 +5,13 @@ class DuckDuckGoSearchTool:
     """DuckDuckGo Search Tool integration."""
 
     def __init__(self, fixed_max_results: Optional[int] = None):
+        try:
+            import duckduckgo_search
+        except ImportError:
+            raise ImportError(
+                "Could not import `duckduckgo-search` python package. "
+                "Please install it using `pip install duckduckgo-search`."
+            )
         self.fixed_max_results = fixed_max_results
 
     def get_tool(self) -> Tool:
@@ -31,14 +38,7 @@ class DuckDuckGoSearchTool:
 
     async def _search(self, query: str, max_results: int = 5) -> Dict[str, Any]:
         """Search DuckDuckGo."""
-        try:
-            from duckduckgo_search import DDGS
-        except ImportError:
-            return {
-                "status": "error",
-                "data": None,
-                "message": "`duckduckgo-search` not installed. Please install using `pip install duckduckgo-search`"
-            }
+        from duckduckgo_search import DDGS
 
         try:
             limit = self.fixed_max_results or max_results

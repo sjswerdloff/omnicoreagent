@@ -1,36 +1,44 @@
-import httpx
+try:
+    import httpx
+except ImportError:
+    httpx = None
 
-from omnicoreagent.community import Toolkit
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.tools.local_tools_registry import Tool
+from omnicoreagent.core.utils import logger
 
 
-class WebTools(Toolkit):
+class UrlExpand:
     """
-    A toolkit for working with web-related tools.
+    Tool for expanding shortened URLs.
     """
-
-    def __init__(
-        self,
-        retries: int = 3,
-        enable_expand_url: bool = True,
-        all: bool = False,
-        **kwargs,
-    ):
+    def __init__(self, retries: int = 3):
+        if httpx is None:
+            raise ImportError(
+                "Could not import `httpx` python package. "
+                "Please install it with `pip install httpx`."
+            )
         self.retries = retries
 
-        tools = []
-        if all or enable_expand_url:
-            tools.append(self.expand_url)
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="url_expand",
+            description="Expands a shortened URL to its final destination.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "The URL to expand.",
+                    }
+                },
+                "required": ["url"],
+            },
+            function=self._expand_url,
+        )
 
-        super().__init__(name="web_tools", tools=tools, **kwargs)
-
-    def expand_url(self, url: str) -> str:
+    def _expand_url(self, url: str) -> str:
         """
         Expands a shortened URL to its final destination using HTTP HEAD requests with retries.
-
-        :param url: The URL to expand.
-
-        :return: The final destination URL if successful; otherwise, returns the original URL.
         """
         timeout = 5
         for attempt in range(1, self.retries + 1):

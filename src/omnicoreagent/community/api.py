@@ -1,17 +1,12 @@
 import json
 from typing import Any, Dict, List, Literal, Optional
+import requests
+from requests.auth import HTTPBasicAuth
 
-from omnicoreagent.community import Toolkit
-from omnicoreagent.utils.log import log_debug, logger
+from omnicoreagent.core.tools.local_tools_registry import Tool
+from omnicoreagent.core.utils import log_debug, logger
 
-try:
-    import requests
-    from requests.auth import HTTPBasicAuth
-except ImportError:
-    raise ImportError("`requests` not installed. Please install using `pip install requests`")
-
-
-class CustomApiTools(Toolkit):
+class CustomApiTools:
     def __init__(
         self,
         base_url: Optional[str] = None,
@@ -21,9 +16,6 @@ class CustomApiTools(Toolkit):
         headers: Optional[Dict[str, str]] = None,
         verify_ssl: bool = True,
         timeout: int = 30,
-        enable_make_request: bool = True,
-        all: bool = False,
-        **kwargs,
     ):
         self.base_url = base_url
         self.username = username
@@ -33,11 +25,44 @@ class CustomApiTools(Toolkit):
         self.verify_ssl = verify_ssl
         self.timeout = timeout
 
-        tools: List[Any] = []
-        if all or enable_make_request:
-            tools.append(self.make_request)
-
-        super().__init__(name="api_tools", tools=tools, **kwargs)
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="make_api_request",
+            description="Make an HTTP request to an API.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "endpoint": {
+                        "type": "string",
+                        "description": "API endpoint (will be combined with base_url if set)",
+                    },
+                    "method": {
+                        "type": "string",
+                        "enum": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+                        "default": "GET",
+                        "description": "HTTP method",
+                    },
+                    "params": {
+                        "type": "object",
+                        "description": "Query parameters",
+                    },
+                    "data": {
+                        "type": "object",
+                        "description": "Form data to send",
+                    },
+                    "headers": {
+                        "type": "object",
+                        "description": "Additional headers",
+                    },
+                    "json_data": {
+                        "type": "object",
+                        "description": "JSON data to send",
+                    },
+                },
+                "required": ["endpoint"],
+            },
+            function=self._make_request,
+        )
 
     def _get_auth(self) -> Optional[HTTPBasicAuth]:
         """Get authentication object if credentials are provided."""
@@ -54,7 +79,7 @@ class CustomApiTools(Toolkit):
             headers.update(additional_headers)
         return headers
 
-    def make_request(
+    async def _make_request(
         self,
         endpoint: str,
         method: Literal["GET", "POST", "PUT", "DELETE", "PATCH"] = "GET",
@@ -62,20 +87,8 @@ class CustomApiTools(Toolkit):
         data: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
         json_data: Optional[Dict[str, Any]] = None,
-    ) -> str:
-        """Make an HTTP request to the API.
-
-        Args:
-            method (str): HTTP method (GET, POST, PUT, DELETE, PATCH)
-            endpoint (str): API endpoint (will be combined with base_url if set)
-            params (Optional[Dict[str, Any]]): Query parameters
-            data (Optional[Dict[str, Any]]): Form data to send
-            headers (Optional[Dict[str, str]]): Additional headers
-            json_data (Optional[Dict[str, Any]]): JSON data to send
-
-        Returns:
-            str: JSON string containing response data or error message
-        """
+    ) -> Dict[str, Any]:
+        """Make an HTTP request to the API."""
         try:
             if self.base_url:
                 url = f"{self.base_url.rstrip('/')}/{endpoint.lstrip('/')}"
@@ -108,15 +121,31 @@ class CustomApiTools(Toolkit):
 
             if not response.ok:
                 logger.error(f"Request failed with status {response.status_code}: {response.text}")
-                result["error"] = "Request failed"
+                return {
+                    "status": "error",
+                    "data": result,
+                    "message": f"Request failed with status {response.status_code}"
+                }
 
-            return json.dumps(result, indent=2)
+            return {
+                "status": "success",
+                "data": result,
+                "message": "Request successful"
+            }
 
         except requests.exceptions.RequestException as e:
             error_message = f"Request failed: {str(e)}"
             logger.error(error_message)
-            return json.dumps({"error": error_message}, indent=2)
+            return {
+                "status": "error",
+                "data": None,
+                "message": error_message
+            }
         except Exception as e:
             error_message = f"Unexpected error: {str(e)}"
             logger.error(error_message)
-            return json.dumps({"error": error_message}, indent=2)
+            return {
+                "status": "error",
+                "data": None,
+                "message": error_message
+            }

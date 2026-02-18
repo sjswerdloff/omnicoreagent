@@ -160,7 +160,6 @@ class DeepAgent:
 
         # Handle user_local_tools: optionally convert list to ToolRegistry
         if isinstance(self.user_local_tools, list):
-             from omnicoreagent.core.tools.local_tools_registry import ToolRegistry
              registry = ToolRegistry()
              for tool in self.user_local_tools:
                  registry.register(tool)

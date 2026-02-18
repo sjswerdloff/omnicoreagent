@@ -1,20 +1,20 @@
 import json
 import time
 from os import getenv
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional
 from uuid import uuid4
 
-from omnicoreagent.utils.media import Audio, Image, Video
-from agno.models.response import FileType
-from omnicoreagent.community import Toolkit
-from omnicoreagent.community.function import ToolResult
-from omnicoreagent.utils.log import log_debug, log_info, logger
+from omnicoreagent.core.tools.local_tools_registry import Tool
+from omnicoreagent.core.utils import log_debug, log_info, logger
 
 try:
     import requests
     from requests.exceptions import RequestException
 except ImportError:
-    raise ImportError("`requests` not installed. Please install using `pip install requests`")
+    requests = None
+    RequestException = None
+
+
 
 MODELS_LAB_URLS = {
     "MP4": "https://modelslab.com/api/v6/video/text2video",
@@ -31,35 +31,43 @@ MODELS_LAB_FETCH_URLS = {
 }
 
 
-class ModelsLabTools(Toolkit):
+class ModelsLabMediaGen:
     def __init__(
         self,
         api_key: Optional[str] = None,
         wait_for_completion: bool = False,
         add_to_eta: int = 15,
         max_wait_time: int = 60,
-        file_type: FileType = FileType.MP4,
-        **kwargs,
+        file_type: str = "MP4",
     ):
-        file_type_str = file_type.value.upper()
-        self.url = MODELS_LAB_URLS[file_type_str]
-        self.fetch_url = MODELS_LAB_FETCH_URLS[file_type_str]
+        if requests is None:
+             raise ImportError("`requests` not installed. Please install using `pip install requests`")
+        self.file_type = file_type.upper()
+        self.url = MODELS_LAB_URLS.get(self.file_type, MODELS_LAB_URLS["MP4"])
+        self.fetch_url = MODELS_LAB_FETCH_URLS.get(self.file_type, MODELS_LAB_FETCH_URLS["MP4"])
         self.wait_for_completion = wait_for_completion
         self.add_to_eta = add_to_eta
         self.max_wait_time = max_wait_time
-        self.file_type = file_type
         self.api_key = api_key or getenv("MODELS_LAB_API_KEY")
 
         if not self.api_key:
-            logger.error("MODELS_LAB_API_KEY not set. Please set the MODELS_LAB_API_KEY environment variable.")
+            logger.error("MODELS_LAB_API_KEY not set.")
 
-        tools: List[Any] = []
-        tools.append(self.generate_media)
-
-        super().__init__(name="models_labs", tools=tools, **kwargs)
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="models_lab_generate_media",
+            description=f"Generate {self.file_type} media given a prompt.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "prompt": {"type": "string", "description": "Text description of the desired media"},
+                },
+                "required": ["prompt"],
+            },
+            function=self._generate_media,
+        )
 
     def _create_payload(self, prompt: str) -> Dict[str, Any]:
-        """Create payload based on file type."""
         base_payload: Dict[str, Any] = {
             "key": self.api_key,
             "prompt": prompt,
@@ -67,139 +75,76 @@ class ModelsLabTools(Toolkit):
             "track_id": None,
         }
 
-        if self.file_type in [FileType.MP4, FileType.GIF]:
-            video_template = {
-                "height": 512,
-                "width": 512,
-                "num_frames": 25,
-                "negative_prompt": "low quality",
-                "model_id": "cogvideox",
-                "instant_response": False,
-                "output_type": self.file_type.value,
-            }
-            base_payload |= video_template  # Use |= instead of update()
-        elif self.file_type == FileType.WAV:
-            sfx_template = {
-                "duration": 10,
-                "output_format": "wav",
-                "temp": False,
-            }
-            base_payload |= sfx_template  # Use |= instead of update()
+        if self.file_type in ["MP4", "GIF"]:
+            base_payload.update({
+                "height": 512, "width": 512, "num_frames": 25,
+                "negative_prompt": "low quality", "model_id": "cogvideox",
+                "instant_response": False, "output_type": self.file_type.lower(),
+            })
+        elif self.file_type == "WAV":
+            base_payload.update({"duration": 10, "output_format": "wav", "temp": False})
         else:
-            audio_template = {
-                "base64": False,
-                "temp": False,
-            }
-            base_payload |= audio_template  # Use |= instead of update()
+            base_payload.update({"base64": False, "temp": False})
 
         return base_payload
 
-    def _create_media_artifacts(self, media_id: str, media_url: str, eta: Optional[str] = None) -> Dict[str, List]:
-        """Create appropriate media artifacts based on file type."""
-        artifacts: Dict[str, List[Union[Image, Video, Audio]]] = {
-            "images": [],
-            "videos": [],
-            "audios": [],
-        }
-
-        if self.file_type == FileType.MP4:
-            video_artifact = Video(id=str(media_id), url=media_url, eta=str(eta))
-            artifacts["videos"].append(video_artifact)
-        elif self.file_type == FileType.GIF:
-            image_artifact = Image(id=str(media_id), url=media_url)
-            artifacts["images"].append(image_artifact)
-        elif self.file_type in [FileType.MP3, FileType.WAV]:
-            audio_artifact = Audio(id=str(media_id), url=media_url)
-            artifacts["audios"].append(audio_artifact)
-
-        return artifacts
-
     def _wait_for_media(self, media_id: str, eta: int) -> bool:
-        """Wait for media generation to complete."""
         time_to_wait = min(eta + self.add_to_eta, self.max_wait_time)
-        log_info(f"Waiting for {time_to_wait} seconds for {self.file_type.value} to be ready")
+        log_info(f"Waiting {time_to_wait}s for {self.file_type} to be ready")
 
-        for seconds_waited in range(time_to_wait):
+        for _ in range(time_to_wait):
             try:
-                fetch_response = requests.post(
+                resp = requests.post(
                     f"{self.fetch_url}/{media_id}",
                     json={"key": self.api_key},
                     headers={"Content-Type": "application/json"},
                 )
-                fetch_result = fetch_response.json()
-
-                if fetch_result.get("status") == "success":
+                if resp.json().get("status") == "success":
                     return True
-
                 time.sleep(1)
-
             except RequestException as e:
-                logger.warning(f"Error during fetch attempt {seconds_waited}: {e}")
-
+                logger.warning(f"Fetch error: {e}")
         return False
 
-    def generate_media(self, prompt: str) -> ToolResult:
-        """Generate media (video, image, or audio) given a prompt."""
+    async def _generate_media(self, prompt: str) -> Dict[str, Any]:
         if not self.api_key:
-            return ToolResult(content="Please set the MODELS_LAB_API_KEY")
+            return {"status": "error", "data": None, "message": "MODELS_LAB_API_KEY not set"}
 
         try:
             payload = json.dumps(self._create_payload(prompt))
             headers = {"Content-Type": "application/json"}
 
-            log_debug(f"Generating {self.file_type.value} for prompt: {prompt}")
+            log_debug(f"Generating {self.file_type} for prompt: {prompt}")
             response = requests.post(self.url, data=payload, headers=headers)
             response.raise_for_status()
 
             result = response.json()
 
-            status = result.get("status")
-            if status == "error":
-                logger.error(f"Error in response: {result.get('message')}")
-                return ToolResult(content=f"Error: {result.get('message')}")
-
+            if result.get("status") == "error":
+                return {"status": "error", "data": None, "message": result.get("message", "Unknown error")}
             if "error" in result:
-                error_msg = f"Failed to generate {self.file_type.value}: {result['error']}"
-                logger.error(error_msg)
-                return ToolResult(content=f"Error: {result['error']}")
+                return {"status": "error", "data": None, "message": result["error"]}
 
             eta = result.get("eta")
             media_id = str(uuid4())
 
-            # Collect all media artifacts
-            all_images = []
-            all_videos = []
-            all_audios = []
+            url_links = result.get("output", []) if self.file_type == "WAV" else result.get("future_links", [])
 
-            if self.file_type == FileType.WAV:
-                url_links = result.get("output", [])
-            else:
-                url_links = result.get("future_links")
+            media_urls = []
             for media_url in url_links:
-                artifacts = self._create_media_artifacts(media_id, media_url, str(eta))
-                all_images.extend(artifacts["images"])
-                all_videos.extend(artifacts["videos"])
-                all_audios.extend(artifacts["audios"])
-
+                media_urls.append(media_url)
                 if self.wait_for_completion and isinstance(eta, int):
                     if self._wait_for_media(media_id, eta):
-                        log_info("Media generation completed successfully")
+                        log_info("Media generation completed")
                     else:
                         logger.warning("Media generation timed out")
 
-            # Return ToolResult with appropriate media artifacts
-            return ToolResult(
-                content=f"{self.file_type.value.capitalize()} has been generated successfully and will be ready in {eta} seconds",
-                images=all_images if all_images else None,
-                videos=all_videos if all_videos else None,
-                audios=all_audios if all_audios else None,
-            )
-
+            return {
+                "status": "success",
+                "data": {"media_urls": media_urls, "eta": eta, "file_type": self.file_type},
+                "message": f"{self.file_type} generated, ready in ~{eta}s",
+            }
         except RequestException as e:
-            error_msg = f"Network error while generating {self.file_type.value}: {e}"
-            logger.error(error_msg)
-            return ToolResult(content=f"Error: {error_msg}")
+            return {"status": "error", "data": None, "message": f"Network error: {e}"}
         except Exception as e:
-            error_msg = f"Unexpected error while generating {self.file_type.value}: {e}"
-            logger.error(error_msg)
-            return ToolResult(content=f"Error: {error_msg}")
+            return {"status": "error", "data": None, "message": str(e)}

@@ -1,76 +1,71 @@
 import json
 from os import getenv
-from typing import Any, List, Optional
+from typing import Any, Dict, Optional
 
-from omnicoreagent.community import Toolkit
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.tools.local_tools_registry import Tool
+from omnicoreagent.core.utils import logger
 
 try:
     from webexpythonsdk import WebexAPI
     from webexpythonsdk.exceptions import ApiError
 except ImportError:
-    logger.error("Webex tools require the `webexpythonsdk` package. Run `pip install webexpythonsdk` to install it.")
+    WebexAPI = None
+    ApiError = None
 
 
-class WebexTools(Toolkit):
-    def __init__(
-        self,
-        enable_send_message: bool = True,
-        enable_list_rooms: bool = True,
-        all: bool = False,
-        access_token: Optional[str] = None,
-        **kwargs,
-    ):
+class WebexTools:
+    def __init__(self, access_token: Optional[str] = None):
+        if WebexAPI is None:
+            raise ImportError(
+                "Could not import `webexpythonsdk` python package. "
+                "Please install it with `pip install webexpythonsdk`."
+            )
         access_token = access_token or getenv("WEBEX_ACCESS_TOKEN")
         if access_token is None:
-            raise ValueError("Webex access token is not set. Please set the WEBEX_ACCESS_TOKEN environment variable.")
-
+            raise ValueError("Webex access token is not set. Set WEBEX_ACCESS_TOKEN environment variable.")
         self.client = WebexAPI(access_token=access_token)
 
-        tools: List[Any] = []
-        if all or enable_send_message:
-            tools.append(self.send_message)
-        if all or enable_list_rooms:
-            tools.append(self.list_rooms)
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="webex_send_message",
+            description="Send a message to a Webex Room.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "room_id": {"type": "string"},
+                    "text": {"type": "string"},
+                },
+                "required": ["room_id", "text"],
+            },
+            function=self._send_message,
+        )
 
-        super().__init__(name="webex", tools=tools, **kwargs)
-
-    def send_message(self, room_id: str, text: str) -> str:
-        """
-        Send a message to a Webex Room.
-        Args:
-            room_id (str): The Room ID to send the message to.
-            text (str): The text of the message to send.
-        Returns:
-            str: A JSON string containing the response from the Webex.
-        """
+    async def _send_message(self, room_id: str, text: str) -> Dict[str, Any]:
         try:
             response = self.client.messages.create(roomId=room_id, text=text)
-            return json.dumps(response.json_data)
+            return {"status": "success", "data": response.json_data, "message": "Message sent"}
         except ApiError as e:
             logger.error(f"Error sending message: {e} in room: {room_id}")
-            return json.dumps({"error": str(e)})
+            return {"status": "error", "data": None, "message": str(e)}
 
-    def list_rooms(self) -> str:
-        """
-        List all rooms in the Webex.
-        Returns:
-            str: A JSON string containing the list of rooms.
-        """
+
+class WebexListRooms(WebexTools):
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="webex_list_rooms",
+            description="List all rooms in Webex.",
+            inputSchema={"type": "object", "properties": {}},
+            function=self._list_rooms,
+        )
+
+    async def _list_rooms(self) -> Dict[str, Any]:
         try:
             response = self.client.rooms.list()
-            rooms_list = [
-                {
-                    "id": room.id,
-                    "title": room.title,
-                    "type": room.type,
-                    "isPublic": room.isPublic,
-                    "isReadOnly": room.isReadOnly,
-                }
+            rooms = [
+                {"id": room.id, "title": room.title, "type": room.type}
                 for room in response
             ]
-
-            return json.dumps({"rooms": rooms_list}, indent=4)
+            return {"status": "success", "data": rooms, "message": f"Found {len(rooms)} rooms"}
         except ApiError as e:
             logger.error(f"Error listing rooms: {e}")
-            return json.dumps({"error": str(e)})
+            return {"status": "error", "data": None, "message": str(e)}

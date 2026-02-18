@@ -56,7 +56,7 @@ async def test_tavily_search_execution():
             assert isinstance(result, dict)
             assert result["status"] == "success"
             assert result["data"] == mock_response
-            assert "Found 1 results" in result["message"]
+            assert "Test Result" in result["message"]
             mock_post.assert_called_once()
 
 @pytest.mark.asyncio

@@ -1,38 +1,45 @@
 from textwrap import dedent
 from typing import Optional
 
-from omnicoreagent.community import Toolkit
+from omnicoreagent.core.tools.local_tools_registry import Tool
 
 
-class UserControlFlowTools(Toolkit):
-    def __init__(
-        self,
-        instructions: Optional[str] = None,
-        add_instructions: bool = True,
-        enable_get_user_input: bool = True,
-        all: bool = False,
-        **kwargs,
-    ):
-        """A toolkit that provides the ability for the agent to interrupt the agent run and interact with the user."""
+class GetUserInput:
+    def __init__(self, instructions: Optional[str] = None):
+        self.instructions = instructions or self.DEFAULT_INSTRUCTIONS
 
-        if instructions is None:
-            self.instructions = self.DEFAULT_INSTRUCTIONS
-        else:
-            self.instructions = instructions
-
-        tools = []
-        if all or enable_get_user_input:
-            tools.append(self.get_user_input)
-
-        super().__init__(
-            name="user_control_flow_tools",
-            instructions=self.instructions,
-            add_instructions=add_instructions,
-            tools=tools,
-            **kwargs,
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="get_user_input",
+            description="Use this tool to get user input for the given fields.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "user_input_fields": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "field_name": {"type": "string", "description": "The name of the field to get input for."},
+                                "field_type": {
+                                    "type": "string",
+                                    "description": "The type of the field to get input for (e.g. str, int, bool).",
+                                },
+                                "field_description": {
+                                    "type": "string",
+                                    "description": "A description of the field to get input for.",
+                                },
+                            },
+                            "required": ["field_name", "field_type", "field_description"],
+                        },
+                    }
+                },
+                "required": ["user_input_fields"],
+            },
+            function=self._get_user_input,
         )
 
-    def get_user_input(self, user_input_fields: list[dict]) -> str:
+    def _get_user_input(self, user_input_fields: list[dict]) -> str:
         """Use this tool to get user input for the given fields. Provide all the fields that you require the user to fill in, as if they were filling in a form.
 
         Args:

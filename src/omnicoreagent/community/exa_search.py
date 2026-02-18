@@ -1,6 +1,9 @@
 import os
-from typing import Any, Dict, Optional
-import httpx
+from typing import Any, Dict, List, Optional
+try:
+    import httpx
+except ImportError:
+    httpx = None
 from omnicoreagent.core.tools.local_tools_registry import Tool
 
 class ExaSearch:
@@ -12,6 +15,11 @@ class ExaSearch:
         self.api_key = api_key or os.environ.get("EXA_API_KEY")
         if not self.api_key:
             raise ValueError("Exa API key not found. Please set EXA_API_KEY environment variable or pass it to the constructor.")
+        if httpx is None:
+            raise ImportError(
+                "Could not import `httpx` python package. "
+                "Please install it with `pip install httpx`."
+            )
         self.base_url = "https://api.exa.ai"
 
     async def _search(

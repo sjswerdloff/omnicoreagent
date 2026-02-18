@@ -2,15 +2,20 @@ import json
 import re
 from os import getenv
 from typing import Any, Dict, Optional
-import requests
+try:
+    import requests
+except ImportError:
+    requests = None
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.utils import logger
 
 class ZendeskSearchArticles:
     def __init__(self, username: Optional[str] = None, password: Optional[str] = None, company_name: Optional[str] = None):
         self.username = username or getenv("ZENDESK_USERNAME")
         self.password = password or getenv("ZENDESK_PASSWORD")
         self.company_name = company_name or getenv("ZENDESK_COMPANY_NAME")
+        if requests is None:
+            raise ImportError("`requests` not installed. Please install using `pip install requests`")
 
     def get_tool(self) -> Tool:
         return Tool(

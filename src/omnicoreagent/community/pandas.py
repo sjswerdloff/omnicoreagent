@@ -1,15 +1,17 @@
 import json
 from typing import Any, Dict, Optional, List
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.utils import logger
 
 try:
     import pandas as pd
 except ImportError:
-    pass
+    pd = None
 
 class PandasCreateDataframe:
     def __init__(self):
+        if pd is None:
+            raise ImportError("`pandas` not installed. Please install using `pip install pandas`")
         self.dataframes: Dict[str, Any] = {}
 
     def get_tool(self) -> Tool:

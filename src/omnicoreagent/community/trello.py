@@ -2,12 +2,12 @@ import json
 from os import getenv
 from typing import Any, Dict, List, Optional
 from omnicoreagent.core.tools.local_tools_registry import Tool
-from omnicoreagent.utils.log import logger
+from omnicoreagent.core.utils import logger
 
 try:
     from trello import TrelloClient
 except ImportError:
-    pass
+    TrelloClient = None
 
 class TrelloBase:
     def __init__(self, api_key: Optional[str] = None, api_secret: Optional[str] = None, token: Optional[str] = None):
@@ -16,7 +16,9 @@ class TrelloBase:
         self.token = token or getenv("TRELLO_TOKEN")
         self.client = None
         
-        if self.api_key and self.api_secret and self.token:
+        if TrelloClient is None:
+             raise ImportError("py-trello not installed. Please install it using `pip install py-trello`.")
+        elif self.api_key and self.api_secret and self.token:
             try:
                 self.client = TrelloClient(api_key=self.api_key, api_secret=self.api_secret, token=self.token)
             except Exception as e:

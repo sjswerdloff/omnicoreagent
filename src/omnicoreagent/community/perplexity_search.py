@@ -1,6 +1,9 @@
 import os
 from typing import Any, Dict, Optional
-import httpx
+try:
+    import httpx
+except ImportError:
+    httpx = None
 from omnicoreagent.core.tools.local_tools_registry import Tool
 
 class PerplexitySearch:
@@ -9,6 +12,8 @@ class PerplexitySearch:
     """
 
     def __init__(self, api_key: Optional[str] = None):
+        if httpx is None:
+            raise ImportError("`httpx` not installed. Please install using `pip install httpx`")
         self.api_key = api_key or os.environ.get("PERPLEXITY_API_KEY")
         if not self.api_key:
             raise ValueError("Perplexity API key not found. Please set PERPLEXITY_API_KEY environment variable or pass it to the constructor.")

@@ -1,6 +1,9 @@
 
 import os
-import httpx
+try:
+    import httpx
+except ImportError:
+    httpx = None
 from typing import Any, Dict, Optional
 from omnicoreagent.core.tools.local_tools_registry import Tool
 
@@ -18,6 +21,12 @@ class GoogleSearch:
         """
         self.api_key = api_key or os.environ.get("GOOGLE_API_KEY")
         self.cse_id = cse_id or os.environ.get("GOOGLE_CSE_ID")
+        
+        if httpx is None:
+            raise ImportError(
+                "Could not import `httpx` python package. "
+                "Please install it with `pip install httpx`."
+            )
 
         if not self.api_key:
             raise ValueError(

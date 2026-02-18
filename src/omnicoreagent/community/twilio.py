@@ -2,17 +2,19 @@ import re
 from os import getenv
 from typing import Any, Dict, List, Optional
 
-from omnicoreagent.community import Toolkit
-from omnicoreagent.utils.log import log_info, logger
+from omnicoreagent.core.tools.local_tools_registry import Tool
+from omnicoreagent.core.utils import log_info, logger
 
 try:
     from twilio.base.exceptions import TwilioRestException
     from twilio.rest import Client
 except ImportError:
-    raise ImportError("`twilio` not installed. Please install it using `pip install twilio`.")
+    TwilioRestException = None
+    Client = None
 
 
-class TwilioTools(Toolkit):
+
+class TwilioTools:
     def __init__(
         self,
         account_sid: Optional[str] = None,
@@ -21,166 +23,117 @@ class TwilioTools(Toolkit):
         api_secret: Optional[str] = None,
         region: Optional[str] = None,
         edge: Optional[str] = None,
-        debug: bool = False,
-        enable_send_sms: bool = True,
-        enable_get_call_details: bool = True,
-        enable_list_messages: bool = True,
-        all: bool = False,
-        **kwargs,
     ):
-        """Initialize the Twilio toolkit.
-
-        Two authentication methods are supported:
-        1. Account SID + Auth Token
-        2. Account SID + API Key + API Secret
-
-        Args:
-            account_sid: Twilio Account SID
-            auth_token: Twilio Auth Token (Method 1)
-            api_key: Twilio API Key (Method 2)
-            api_secret: Twilio API Secret (Method 2)
-            region: Optional Twilio region (e.g. 'au1')
-            edge: Optional Twilio edge location (e.g. 'sydney')
-            debug: Enable debug logging
-        """
-        # Get credentials from environment if not provided
         self.account_sid = account_sid or getenv("TWILIO_ACCOUNT_SID")
         self.auth_token = auth_token or getenv("TWILIO_AUTH_TOKEN")
         self.api_key = api_key or getenv("TWILIO_API_KEY")
         self.api_secret = api_secret or getenv("TWILIO_API_SECRET")
-
-        # Optional region and edge
         self.region = region or getenv("TWILIO_REGION")
         self.edge = edge or getenv("TWILIO_EDGE")
 
-        # Validate required credentials
         if not self.account_sid:
-            logger.error("TWILIO_ACCOUNT_SID not set. Please set the TWILIO_ACCOUNT_SID environment variable.")
+            logger.error("TWILIO_ACCOUNT_SID not set.")
 
-        # Initialize client based on provided authentication method
+        if Client is None:
+            raise ImportError(
+                "Could not import `twilio` python package. "
+                "Please install it with `pip install twilio`."
+            )
+
         if self.api_key and self.api_secret:
-            # Method 2: API Key + Secret
-            self.client = Client(
-                self.api_key,
-                self.api_secret,
-                self.account_sid,
-                region=self.region or None,
-                edge=self.edge or None,
-            )
+            self.client = Client(self.api_key, self.api_secret, self.account_sid, region=self.region, edge=self.edge)
         elif self.auth_token:
-            # Method 1: Auth Token
-            self.client = Client(
-                self.account_sid,
-                self.auth_token,
-                region=self.region or None,
-                edge=self.edge or None,
-            )
+            self.client = Client(self.account_sid, self.auth_token, region=self.region, edge=self.edge)
         else:
-            logger.error(
-                "Neither (auth_token) nor (api_key and api_secret) provided. "
-                "Please set either TWILIO_AUTH_TOKEN or both TWILIO_API_KEY and TWILIO_API_SECRET environment variables."
-            )
-
-        if debug:
-            import logging
-
-            logging.basicConfig()
-            self.client.http_client.logger.setLevel(logging.INFO)
-
-        tools: List[Any] = []
-        if all or enable_send_sms:
-            tools.append(self.send_sms)
-        if all or enable_get_call_details:
-            tools.append(self.get_call_details)
-        if all or enable_list_messages:
-            tools.append(self.list_messages)
-
-        super().__init__(name="twilio", tools=tools, **kwargs)
+            logger.error("Neither auth_token nor api_key+api_secret provided for Twilio.")
+            self.client = None
 
     @staticmethod
     def validate_phone_number(phone: str) -> bool:
-        """Validate E.164 phone number format"""
         return bool(re.match(r"^\+[1-9]\d{1,14}$", phone))
 
-    def send_sms(self, to: str, from_: str, body: str) -> str:
-        """
-        Send an SMS message using Twilio.
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="twilio_send_sms",
+            description="Send an SMS message using Twilio.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "to": {"type": "string", "description": "Recipient phone (E.164 format)"},
+                    "from_": {"type": "string", "description": "Sender Twilio phone (E.164 format)"},
+                    "body": {"type": "string"},
+                },
+                "required": ["to", "from_", "body"],
+            },
+            function=self._send_sms,
+        )
 
-        Args:
-            to: Recipient phone number (E.164 format)
-            from_: Sender phone number (must be a Twilio number)
-            body: Message content
-
-        Returns:
-            str: Message SID if successful, error message if failed
-        """
+    async def _send_sms(self, to: str, from_: str, body: str) -> Dict[str, Any]:
+        if not self.client:
+            return {"status": "error", "data": None, "message": "Twilio client not initialized"}
+        if not self.validate_phone_number(to):
+            return {"status": "error", "data": None, "message": "'to' must be E.164 format"}
+        if not self.validate_phone_number(from_):
+            return {"status": "error", "data": None, "message": "'from_' must be E.164 format"}
         try:
-            if not self.validate_phone_number(to):
-                return "Error: 'to' number must be in E.164 format (e.g., +1234567890)"
-            if not self.validate_phone_number(from_):
-                return "Error: 'from_' number must be in E.164 format (e.g., +1234567890)"
-            if not body or len(body.strip()) == 0:
-                return "Error: Message body cannot be empty"
-
             message = self.client.messages.create(to=to, from_=from_, body=body)
-            log_info(f"SMS sent. SID: {message.sid}, to: {to}")
-            return f"Message sent successfully. SID: {message.sid}"
+            log_info(f"SMS sent. SID: {message.sid}")
+            return {"status": "success", "data": {"sid": message.sid}, "message": f"SMS sent to {to}"}
         except TwilioRestException as e:
-            logger.error(f"Failed to send SMS to {to}: {e}")
-            return f"Error sending message: {str(e)}"
+            logger.error(f"Failed to send SMS: {e}")
+            return {"status": "error", "data": None, "message": str(e)}
 
-    def get_call_details(self, call_sid: str) -> Dict[str, Any]:
-        """
-        Get details about a specific call.
 
-        Args:
-            call_sid: The SID of the call to lookup
+class TwilioGetCallDetails(TwilioTools):
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="twilio_get_call_details",
+            description="Get details about a Twilio call.",
+            inputSchema={
+                "type": "object",
+                "properties": {"call_sid": {"type": "string"}},
+                "required": ["call_sid"],
+            },
+            function=self._get_call_details,
+        )
 
-        Returns:
-            Dict: Call details including status, duration, etc.
-        """
+    async def _get_call_details(self, call_sid: str) -> Dict[str, Any]:
+        if not self.client:
+            return {"status": "error", "data": None, "message": "Twilio client not initialized"}
         try:
             call = self.client.calls(call_sid).fetch()
-            log_info(f"Fetched details for call SID: {call_sid}")
-            return {
-                "to": call.to,
-                "from": call.from_,
-                "status": call.status,
-                "duration": call.duration,
-                "direction": call.direction,
-                "price": call.price,
-                "start_time": str(call.start_time),
-                "end_time": str(call.end_time),
+            data = {
+                "to": call.to, "from": call.from_, "status": call.status,
+                "duration": call.duration, "direction": call.direction,
+                "price": call.price, "start_time": str(call.start_time), "end_time": str(call.end_time),
             }
+            return {"status": "success", "data": data, "message": "Call details retrieved"}
         except TwilioRestException as e:
-            logger.error(f"Failed to fetch call details for SID {call_sid}: {e}")
-            return {"error": str(e)}
+            return {"status": "error", "data": None, "message": str(e)}
 
-    def list_messages(self, limit: int = 20) -> List[Dict[str, Any]]:
-        """
-        List recent SMS messages.
 
-        Args:
-            limit: Maximum number of messages to return
+class TwilioListMessages(TwilioTools):
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="twilio_list_messages",
+            description="List recent SMS messages from Twilio.",
+            inputSchema={
+                "type": "object",
+                "properties": {"limit": {"type": "integer", "default": 20}},
+            },
+            function=self._list_messages,
+        )
 
-        Returns:
-            List[Dict]: List of message details
-        """
+    async def _list_messages(self, limit: int = 20) -> Dict[str, Any]:
+        if not self.client:
+            return {"status": "error", "data": None, "message": "Twilio client not initialized"}
         try:
             messages = []
-            for message in self.client.messages.list(limit=limit):
-                messages.append(
-                    {
-                        "sid": message.sid,
-                        "to": message.to,
-                        "from": message.from_,
-                        "body": message.body,
-                        "status": message.status,
-                        "date_sent": str(message.date_sent),
-                    }
-                )
-            log_info(f"Retrieved {len(messages)} messages")
-            return messages
+            for msg in self.client.messages.list(limit=limit):
+                messages.append({
+                    "sid": msg.sid, "to": msg.to, "from": msg.from_,
+                    "body": msg.body, "status": msg.status, "date_sent": str(msg.date_sent),
+                })
+            return {"status": "success", "data": messages, "message": f"Retrieved {len(messages)} messages"}
         except TwilioRestException as e:
-            logger.error(f"Failed to list messages: {e}")
-            return [{"error": str(e)}]
+            return {"status": "error", "data": None, "message": str(e)}

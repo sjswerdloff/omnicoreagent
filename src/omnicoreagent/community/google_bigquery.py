@@ -1,126 +1,101 @@
 import json
 from os import getenv
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
-from omnicoreagent.community import Toolkit
-from omnicoreagent.utils.log import log_debug, logger
+from omnicoreagent.core.tools.local_tools_registry import Tool
+from omnicoreagent.core.utils import log_debug, logger
 
 try:
     from google.cloud import bigquery
 except ImportError:
-    raise ImportError("`bigquery` not installed. Please install using `pip install google-cloud-bigquery`")
+    bigquery = None
 
-
-def _clean_sql(sql: str) -> str:
-    """Clean SQL query by normalizing whitespace while preserving token boundaries.
-
-    Replaces newlines with spaces (not empty strings) to prevent line comments
-    from swallowing subsequent SQL statements.
-    """
-    return sql.replace("\\n", " ").replace("\n", " ")
-
-
-class GoogleBigQueryTools(Toolkit):
+class GoogleBigQueryBase:
     def __init__(
         self,
         dataset: str,
         project: Optional[str] = None,
         location: Optional[str] = None,
         credentials: Optional[Any] = None,
-        enable_list_tables: bool = True,
-        enable_describe_table: bool = True,
-        enable_run_sql_query: bool = True,
-        all: bool = False,
-        **kwargs,
     ):
+        if bigquery is None:
+            raise ImportError(
+                "Could not import `google-cloud-bigquery` python package. "
+                "Please install it using `pip install google-cloud-bigquery`."
+            )
         self.project = project or getenv("GOOGLE_CLOUD_PROJECT")
         self.location = location or getenv("GOOGLE_CLOUD_LOCATION")
-
-        if not self.project:
-            raise ValueError("project is required")
-        if not self.location:
-            raise ValueError("location is required")
-
         self.dataset = dataset
+        self.credentials = credentials
+        
+        if not self.project:
+            logger.warning("GOOGLE_CLOUD_PROJECT not set")
+        
+        self.client = None
 
-        # Initialize the BQ CLient
-        self.client = bigquery.Client(project=self.project, credentials=credentials)
+    def _get_client(self):
+        if not self.client:
+           self.client = bigquery.Client(project=self.project, credentials=self.credentials) 
+        return self.client
 
-        tools: List[Any] = []
-        if all or enable_list_tables:
-            tools.append(self.list_tables)
-        if all or enable_describe_table:
-            tools.append(self.describe_table)
-        if all or enable_run_sql_query:
-            tools.append(self.run_sql_query)
+    def _clean_sql(self, sql: str) -> str:
+        return sql.replace("\\n", " ").replace("\n", " ")
 
-        super().__init__(name="google_bigquery_tools", tools=tools, **kwargs)
+class GoogleBigQueryListTables(GoogleBigQueryBase):
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="bigquery_list_tables",
+            description="List tables in the BigQuery dataset.",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+            },
+            function=self._list_tables,
+        )
 
-    def list_tables(self) -> str:
-        """Use this function to get a list of table names in the dataset.
-        Returns:
-            str: list of tables in the dataset.
-        """
+    async def _list_tables(self) -> Dict[str, Any]:
         try:
-            log_debug("listing tables in the database")
-            tables = self.client.list_tables(self.dataset)
-            tables_str = str([table.table_id for table in tables])
-            log_debug(f"table_names: {tables_str}")
-            return tables_str
+            client = self._get_client()
+            tables = client.list_tables(self.dataset)
+            table_ids = [table.table_id for table in tables]
+            return {
+                "status": "success",
+                "data": table_ids,
+                "message": f"Tables: {', '.join(table_ids)}"
+            }
         except Exception as e:
-            logger.error(f"Error getting tables: {e}")
-            return f"Error getting tables: {e}"
+            return {"status": "error", "data": None, "message": str(e)}
 
-    def describe_table(self, table_id: str) -> str:
-        """Use this function to describe a table.
-        Args:
-            table_name (str): The name of the table to get the schema for.
-        Returns:
-            str: schema of a table
-        """
-        try:
-            table_id = f"{self.project}.{self.dataset}.{table_id}"
-            log_debug(f"Describing table: {table_id}")
-            api_response = self.client.get_table(table_id)
-            table_api_repr = api_response.to_api_repr()
-            desc = str(table_api_repr.get("description", ""))
-            col_names = str([column["name"] for column in table_api_repr["schema"]["fields"]])  # Columns in a table
-            result = json.dumps({"table_description": desc, "columns": col_names})
-            return result
-        except Exception as e:
-            logger.error(f"Error getting table schema: {e}")
-            return f"Error getting table schema: {e}"
+class GoogleBigQueryRunQuery(GoogleBigQueryBase):
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="bigquery_run_query",
+            description="Run a SQL query on BigQuery.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string"},
+                },
+                "required": ["query"],
+            },
+            function=self._run_query,
+        )
 
-    def run_sql_query(self, query: str) -> str:
-        """Use this function to run a BigQuery SQL query and return the result.
-        Args:
-            query (str): The query to run.
-        Returns:
-            str: Result of the Google BigQuery SQL query.
-        Notes:
-            - The result may be empty if the query does not return any data.
-        """
+    async def _run_query(self, query: str) -> Dict[str, Any]:
         try:
-            return json.dumps(self._run_sql(sql=query), default=str)
-        except Exception as e:
-            logger.error(f"Error running query: {e}")
-            return f"Error running query: {e}"
-
-    def _run_sql(self, sql: str) -> str:
-        """Internal function to run a sql query.
-        Args:
-            sql (str): The sql query to run.
-        Returns:
-            results (str): The result of the query.
-        """
-        try:
-            log_debug(f"Running Google SQL |\n{sql}")
-            cleaned_query = _clean_sql(sql)
+            client = self._get_client()
+            cleaned_query = self._clean_sql(query)
             job_config = bigquery.QueryJobConfig(default_dataset=f"{self.project}.{self.dataset}")
-            query_job = self.client.query(cleaned_query, job_config)
+            
+            query_job = client.query(cleaned_query, job_config)
             results = query_job.result()
-            results_str = str([dict(row) for row in results])
-            return results_str.replace("\n", " ")
+            
+            data = [dict(row) for row in results]
+            
+            return {
+                "status": "success",
+                "data": data,
+                "message": f"Returned {len(data)} rows"
+            }
         except Exception as e:
-            logger.error(f"Error while executing SQL: {e}")
-            return ""
+            return {"status": "error", "data": None, "message": str(e)}

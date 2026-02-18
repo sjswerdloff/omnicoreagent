@@ -1,28 +1,31 @@
 import webbrowser
-from typing import Any, List
+from typing import Any, Dict
 
-from omnicoreagent.community import Toolkit
+from omnicoreagent.core.tools.local_tools_registry import Tool
 
 
-class WebBrowserTools(Toolkit):
-    """Tools for opening a page on the web browser"""
+class WebBrowserTools:
+    def get_tool(self) -> Tool:
+        return Tool(
+            name="open_web_page",
+            description="Open a URL in the default web browser.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string"},
+                    "new_window": {"type": "boolean", "default": False, "description": "Open in a new window instead of a new tab"},
+                },
+                "required": ["url"],
+            },
+            function=self._open_page,
+        )
 
-    def __init__(self, enable_open_page: bool = True, all: bool = False, **kwargs):
-        tools: List[Any] = []
-        if all or enable_open_page:
-            tools.append(self.open_page)
-
-        super().__init__(name="webbrowser_tools", tools=tools, **kwargs)
-
-    def open_page(self, url: str, new_window: bool = False):
-        """Open a URL in a browser window
-        Args:
-            url (str): URL to open
-            new_window (bool): If True, open in a new window, otherwise open in a new tab. Default is False.
-        Returns:
-            None
-        """
-        if new_window:
-            webbrowser.open_new(url)
-        else:
-            webbrowser.open_new_tab(url)
+    async def _open_page(self, url: str, new_window: bool = False) -> Dict[str, Any]:
+        try:
+            if new_window:
+                webbrowser.open_new(url)
+            else:
+                webbrowser.open_new_tab(url)
+            return {"status": "success", "data": None, "message": f"Opened {url}"}
+        except Exception as e:
+            return {"status": "error", "data": None, "message": str(e)}
