@@ -17,9 +17,15 @@ servers_config.json
 site/
 *.db
 venv/
+
+# ── Workspace (all agent runtime data) ──
+workspace/
+
+# Legacy (kept for safety during migration)
 memories/
 .omnicoreagent_config/*
 .omnicoreagent_artifacts/*
+
 .agents/skills/*
 omnistudio/web/node_modules/*
 omnicoreagent-video/*

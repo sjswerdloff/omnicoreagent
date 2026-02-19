@@ -169,14 +169,14 @@ Conversations can run forever without hitting token limits.
     "enabled": True,
     "threshold_tokens": 500,  # Offload if response > 500 tokens
     "max_preview_tokens": 150,  # Show first 150 tokens in context
-    "storage_dir": ".omnicoreagent_artifacts"
+    "storage_dir": "workspace/artifacts"
 }
 ```
 Large tool responses are automatically saved to files, with only a preview in context.
 
 **How it works:**
 1. Tool returns large response (e.g., web search with 50 results)
-2. Response saved to `.omnicoreagent_artifacts/` 
+2. Response saved to `workspace/artifacts/` 
 3. Agent sees preview + file reference in context
 4. Agent uses `read_artifact()` tool to get full content when needed
 

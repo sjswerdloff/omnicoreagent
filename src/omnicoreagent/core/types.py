@@ -53,7 +53,7 @@ class AgentConfig(BaseModel):
             "threshold_tokens": 500,
             "threshold_bytes": 2000,
             "max_preview_tokens": 150,
-            "storage_dir": ".omnicoreagent_artifacts",
+            "storage_dir": "workspace/artifacts",
         },
         description="Tool response offloading config to reduce context size from large tool outputs",
     )
@@ -144,7 +144,7 @@ class AgentConfig(BaseModel):
                 f"tool_offload.max_preview_lines must be positive, got {max_preview_lines}"
             )
 
-        storage_dir = v.get("storage_dir", ".omnicoreagent_artifacts")
+        storage_dir = v.get("storage_dir", "workspace/artifacts")
         if not isinstance(storage_dir, str) or not storage_dir:
             raise ValueError(f"tool_offload.storage_dir must be a non-empty string")
 

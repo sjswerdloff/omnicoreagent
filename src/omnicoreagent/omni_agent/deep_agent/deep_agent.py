@@ -52,7 +52,7 @@ DEFAULT_DEEP_AGENT_CONFIG = {
         "threshold_tokens": 500,
         "threshold_bytes": 2000,
         "max_preview_tokens": 150,
-        "storage_dir": ".omnicoreagent_artifacts",
+        "storage_dir": "workspace/artifacts",
     },
 }
 

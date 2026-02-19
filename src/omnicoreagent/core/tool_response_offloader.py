@@ -21,10 +21,12 @@ from datetime import datetime, timedelta
 
 from omnicoreagent.core.summarizer.tokenizer import count_tokens
 from omnicoreagent.core.utils import logger
+from omnicoreagent.core.workspace import get_artifacts_dir
 
 
-# Default artifacts directory - configurable via env var for cloud deployments
-DEFAULT_ARTIFACTS_DIR = os.environ.get("OMNICOREAGENT_ARTIFACTS_DIR", ".omnicoreagent_artifacts")
+# Default artifacts directory - resolved from workspace module
+# Override with OMNICOREAGENT_ARTIFACTS_DIR or OMNICOREAGENT_WORKSPACE_DIR env vars
+DEFAULT_ARTIFACTS_DIR = get_artifacts_dir()
 
 
 @dataclass

@@ -2,6 +2,7 @@ from pathlib import Path
 import urllib.parse
 from filelock import FileLock
 from omnicoreagent.core.tools.memory_tool.base import AbstractMemoryBackend
+from omnicoreagent.core.workspace import get_memories_dir
 import json
 from typing import Any
 
@@ -12,8 +13,8 @@ class LocalMemoryBackend(AbstractMemoryBackend):
     Safe for concurrent access using file locks and atomic writes.
     """
 
-    def __init__(self, base_dir="./memories"):
-        self.base_dir = Path(base_dir).resolve()
+    def __init__(self, base_dir=None):
+        self.base_dir = Path(base_dir or get_memories_dir()).resolve()
         self._ensure_base_dir()
 
     def _ensure_base_dir(self):

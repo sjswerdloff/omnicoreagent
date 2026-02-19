@@ -335,7 +335,8 @@ def generate_dockerfile(file_path: str, output_dir: str):
         f"ENV AGENT_PATH=/app/{rel_path}",
         "",
         "# Artifacts storage (always ephemeral)",
-        "ENV OMNICOREAGENT_ARTIFACTS_DIR=/tmp/.omnicoreagent_artifacts",
+        "ENV OMNICOREAGENT_WORKSPACE_DIR=/tmp/workspace",
+        "ENV OMNICOREAGENT_ARTIFACTS_DIR=/tmp/workspace/artifacts",
     ]
     
     # Only local memory needs /tmp path in Dockerfile
@@ -343,7 +344,7 @@ def generate_dockerfile(file_path: str, output_dir: str):
         env_lines.extend([
             "",
             "# Local memory (ephemeral on cloud)",
-            "ENV OMNICOREAGENT_MEMORY_DIR=/tmp/memories",
+            "ENV OMNICOREAGENT_MEMORY_DIR=/tmp/workspace/memories",
         ])
     # S3/R2 credentials are passed at runtime, not in Dockerfile
     

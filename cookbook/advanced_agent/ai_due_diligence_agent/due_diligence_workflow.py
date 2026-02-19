@@ -190,7 +190,7 @@ Provide a structured summary with sections for:
                 "threshold_tokens": 300,  # Offload if >300 tokens (low for demo)
                 "threshold_bytes": 1000,  # Or >1KB
                 "max_preview_tokens": 100,  # Show first ~100 tokens in context
-                "storage_dir": ".omnicoreagent_artifacts",
+                "storage_dir": "workspace/artifacts",
             }
         },
         debug=True,

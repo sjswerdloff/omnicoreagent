@@ -122,7 +122,7 @@ docker run -p 8000:8000 -e LLM_API_KEY=$LLM_API_KEY omniserver
 ### Cloud Deployment (Cloud Run, AWS Fargate, Railway)
 
 The generated Dockerfile sets:
-- `OMNICOREAGENT_ARTIFACTS_DIR=/tmp/.omnicoreagent_artifacts`
+- `OMNICOREAGENT_ARTIFACTS_DIR=/tmp/workspace/artifacts`
 - `OMNICOREAGENT_MEMORY_DIR=/tmp/memories`
 
 For S3/R2 memory, pass credentials at runtime:

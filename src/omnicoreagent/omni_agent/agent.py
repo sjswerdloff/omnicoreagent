@@ -171,7 +171,7 @@ class OmniCoreAgent:
                     "threshold_tokens": 500,
                     "threshold_bytes": 2000,
                     "max_preview_tokens": 150,
-                    "storage_dir": ".omnicoreagent_artifacts",
+                    "storage_dir": "workspace/artifacts",
                 },
             }
 
@@ -482,7 +482,7 @@ class OmniCoreAgent:
             if hasattr(self, "_config_file_path") and self._config_file_path.exists():
                 self._config_file_path.unlink()
 
-            hidden_dir = Path(".omnicoreagent_config")
+            hidden_dir = Path("workspace/config")
             if hidden_dir.exists() and not list(hidden_dir.glob("*.json")):
                 hidden_dir.rmdir()
         except Exception:

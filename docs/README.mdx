@@ -1,193 +1,112 @@
 # OmniCoreAgent Documentation
 
 ## 🚀 Quick Start
- 
- ### Validate Documentation Locally
- 
- ```bash
- # Check for broken links
- ./deploy_docs.sh
- ```
- 
- ### Run Development Server
- 
- ```bash
- # Install Mintlify CLI
- npm i -g mintlify
- 
- # Start preview
- cd docs && mintlify dev
- ```
- 
+
+### Run Development Server
+
+```bash
+# Install Mintlify CLI
+npm i -g mintlify
+
+# Start preview
+cd docs && mintlify dev
+```
+
 ## 📁 Documentation Structure
 
 ```
 docs/
 ├── index.mdx                    # Homepage
-├── getting-started/            # Installation & Quick Start
+├── getting-started/
 │   ├── installation.mdx
 │   └── quickstart.mdx
-├── core-concepts/              # Core Concepts
+├── core-concepts/
 │   ├── overview.mdx
 │   ├── architecture.mdx
-│   ├── skills.mdx
 │   ├── memory.mdx
+│   ├── context-engineering.mdx
 │   ├── events.mdx
 │   ├── mcp.mdx
+│   ├── local-tools.mdx
+│   ├── community-tools.mdx
+│   ├── skills.mdx
+│   ├── workspace-memory.mdx
+│   ├── guardrails.mdx
 │   ├── sub-agents.mdx
 │   ├── background-agents.mdx
 │   ├── deep-agent.mdx
 │   └── workflows.mdx
-├── how-to-guides/              # How-To Guides
-│   ├── basic-usage.mdx
+├── how-to-guides/
 │   ├── configuration.mdx
-│   ├── commands.mdx
-│   ├── memory-management.mdx
 │   ├── advanced-tools.mdx
 │   ├── observability.mdx
 │   ├── models.mdx
 │   └── omniserve.mdx
-└── README.mdx                  # This file
+├── changelog.mdx
+└── README.mdx                   # This file
 ```
 
-## ✨ Features
+## ✨ Mintlify Components
 
-- **Material Design**: Modern, responsive theme
-- **Search**: Full-text search across all documentation
-- **Code Highlighting**: Syntax highlighting for all languages
-- **Mermaid Diagrams**: Architecture and workflow diagrams
-- **Tabbed Content**: Organized content with tabs
-- **Admonitions**: Tips, warnings, and info boxes
-- **Git Integration**: Last modified dates from git history
+Use Mintlify components (not MkDocs syntax):
 
-## 🛠️ Available Commands
- 
- Use the `deploy_docs.sh` script for validation:
- 
- ```bash
- ./deploy_docs.sh    # Validate links
- ```
+```mdx
+<Tip title="Helpful Tip">
+This is a helpful tip for users.
+</Tip>
 
-## 📝 Writing Documentation
+<Warning title="Important Warning">
+This is something users should be careful about.
+</Warning>
 
-### Markdown Guidelines
+<Info title="Note">
+Background context or helpful details.
+</Info>
+```
+
+### Tabs
+
+```mdx
+<Tabs>
+  <Tab title="Option A">
+    Content for option A
+  </Tab>
+  <Tab title="Option B">
+    Content for option B
+  </Tab>
+</Tabs>
+```
+
+### Cards
+
+```mdx
+<CardGroup cols={2}>
+  <Card title="Feature" icon="bolt" href="/path">
+    Description
+  </Card>
+</CardGroup>
+```
+
+## 📝 Writing Guidelines
 
 - Use clear, concise language
-- Include practical examples
+- Include practical Python examples (not CLI)
 - Add code snippets where helpful
 - Use proper heading hierarchy (H1 → H2 → H3)
-- Include cross-references with relative links
-
-### Code Examples
-
-Use fenced code blocks with language specification:
-
-```bash
-# Shell commands
-omnicoreagent --help
-```
-
-```json
-{
-    "LLM": {
-        "provider": "openai",
-        "model": "gpt-4o-mini"
-    }
-}
-```
-
-```python
-# Python code
-import omnicoreagent
-```
-
-### Admonitions
-
-Use admonitions for important information:
-
-```markdown
-!!! tip "Helpful Tip"
-    This is a helpful tip for users.
-
-!!! warning "Important Warning"
-    This is something users should be careful about.
-
-!!! failure "Common Error"
-    This describes a common error and its solution.
-```
-
-### Tabbed Content
-
-Organize related content with tabs:
-
-```markdown
-=== "Option A"
-    Content for option A
-
-=== "Option B"
-    Content for option B
-```
-
-## 🎯 Content Guidelines
-
-### Target Audience
-
-- **Beginners**: Clear installation and setup instructions
-- **Intermediate Users**: Comprehensive configuration guides
-- **Advanced Users**: Deep technical details and architecture
-- **Developers**: Contributing guidelines and API reference
-
-### Content Principles
-
-1. **Clarity**: Write for understanding, not to impress
-2. **Examples**: Every concept should have a practical example
-3. **Completeness**: Cover edge cases and gotchas
-4. **Currency**: Keep information up-to-date with releases
-5. **Accessibility**: Use inclusive language and clear structure
+- Every page must have frontmatter (`title`, `description`, `icon`)
 
 ## 🔄 Deployment
- 
- ### Git-Based Deployment
- 
- Mintlify automatically deploys when you push to the configured branch (usually `main`).
- 
- ```bash
- # Deploy to production
- git push origin main
- ```
 
-## 🐛 Troubleshooting
- 
- ### Broken Links
- 
- ```bash
- # Validate links
- ./deploy_docs.sh
- ```
- 
- ### CLI Issues
- 
- If `mintlify` command is not found:
- 
- ```bash
- npm install -g mintlify
- ```
+Mintlify automatically deploys when you push to `main`:
+
+```bash
+git push origin main
+```
 
 ## 📚 Resources
- 
- - **Mintlify**: [Official Documentation](https://mintlify.com/docs)
- - **Markdown Guide**: [CommonMark Spec](https://commonmark.org/)
- - **Mermaid Diagrams**: [Mermaid Documentation](https://mermaid.js.org/)
 
-## 🤝 Contributing
- 
- 1. **Fork** the repository
- 2. **Create** a feature branch
- 3. **Write** your documentation
- 4. **Test** locally with `mintlify dev`
- 5. **Submit** a pull request
-
-See [Contributing Guide](https://github.com/omnirexflora-labs/omnicoreagent/blob/main/CONTRIBUTING.mdx) for detailed instructions.
+- **Mintlify Docs**: [mintlify.com/docs](https://mintlify.com/docs)
+- **Component Reference**: [mintlify.com/docs/content/components](https://mintlify.com/docs/content/components)
 
 ---
 

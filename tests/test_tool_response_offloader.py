@@ -48,7 +48,7 @@ class TestOffloadConfig:
         assert config.threshold_bytes == 2000
         assert config.max_preview_tokens == 150
         assert config.max_preview_lines == 10
-        assert config.storage_dir == ".omnicoreagent_artifacts"
+        assert config.storage_dir == "workspace/artifacts"
         assert config.retention_days == 7
         assert config.include_metadata == True
 
@@ -340,7 +340,7 @@ class TestOffload:
 
         meta_path = (
             Path(self.temp_dir)
-            / ".omnicoreagent_artifacts"
+            / "workspace/artifacts"
             / f"{result.artifact_id}.meta.json"
         )
         assert meta_path.exists()
@@ -590,7 +590,7 @@ class TestEdgeCases:
         """Test .gitignore is created in storage directory."""
         self.offloader.offload("test", "Content " * 50)
 
-        gitignore_path = Path(self.temp_dir) / ".omnicoreagent_artifacts" / ".gitignore"
+        gitignore_path = Path(self.temp_dir) / "workspace/artifacts" / ".gitignore"
         assert gitignore_path.exists()
         assert "*" in gitignore_path.read_text()
 
@@ -706,7 +706,7 @@ class TestCleanup:
 
         self.offloader.cleanup_old_artifacts()
 
-        gitignore_path = Path(self.temp_dir) / ".omnicoreagent_artifacts" / ".gitignore"
+        gitignore_path = Path(self.temp_dir) / "workspace/artifacts" / ".gitignore"
         assert gitignore_path.exists()
 
 
