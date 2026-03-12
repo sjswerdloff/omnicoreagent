@@ -338,7 +338,8 @@ class S3MemoryBackend(AbstractMemoryBackend):
 
             metadata_info = []
             if "ETag" in response:
-                metadata_info.append(f"ETag: {response['ETag'].strip('"')}")
+                etag = response["ETag"].strip('"')
+                metadata_info.append(f"ETag: {etag}")
             if "VersionId" in response and self.enable_versioning:
                 metadata_info.append(f"Version: {response['VersionId']}")
             if "LastModified" in response:
