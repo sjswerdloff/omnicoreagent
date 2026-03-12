@@ -1,0 +1,121 @@
+---
+title: MCP Client
+description: 'Built-in Model Context Protocol support — stdio, SSE, and Streamable HTTP'
+icon: 'plug'
+---
+
+# Built-in MCP Client
+
+Connect to any MCP-compatible service with support for multiple transport protocols and authentication methods.
+
+---
+
+## Transport Types
+
+### 1. stdio — Local MCP servers
+
+Process communication with local CLI tools:
+
+```python
+{
+    "name": "filesystem",
+    "transport_type": "stdio",
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home"]
+}
+```
+
+### 2. streamable_http — Remote servers with HTTP streaming
+
+```python
+# With Bearer Token
+{
+    "name": "github",
+    "transport_type": "streamable_http",
+    "url": "http://localhost:8080/mcp",
+    "headers": {
+        "Authorization": "Bearer your-token"  # optional
+    },
+    "timeout": 60  # optional
+}
+
+# With OAuth 2.0 (auto-starts callback server on localhost:3000)
+{
+    "name": "oauth_server",
+    "transport_type": "streamable_http",
+    "auth": {
+        "method": "oauth"
+    },
+    "url": "http://localhost:8000/mcp"
+}
+```
+
+### 3. sse — Server-Sent Events
+
+```python
+{
+    "name": "sse_server",
+    "transport_type": "sse",
+    "url": "http://localhost:3000/sse",
+    "headers": {
+        "Authorization": "Bearer token"  # optional
+    },
+    "timeout": 60,  # optional
+    "sse_read_timeout": 120  # optional
+}
+```
+
+---
+
+## Complete Example with All 3 Transport Types
+
+```python
+agent = OmniCoreAgent(
+    name="multi_mcp_agent",
+    system_instruction="You have access to filesystem, GitHub, and live data.",
+    model_config={"provider": "openai", "model": "gpt-4o"},
+    mcp_tools=[
+        # 1. stdio - Local filesystem
+        {
+            "name": "filesystem",
+            "transport_type": "stdio",
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home"]
+        },
+        # 2. streamable_http - Remote API (supports Bearer token or OAuth)
+        {
+            "name": "github",
+            "transport_type": "streamable_http",
+            "url": "http://localhost:8080/mcp",
+            "headers": {"Authorization": "Bearer github-token"},
+            "timeout": 60
+        },
+        # 3. sse - Real-time streaming
+        {
+            "name": "live_data",
+            "transport_type": "sse",
+            "url": "http://localhost:3000/sse",
+            "headers": {"Authorization": "Bearer token"},
+            "sse_read_timeout": 120
+        }
+    ]
+)
+
+await agent.connect_mcp_servers()
+tools = await agent.list_all_available_tools()  # All MCP + local tools
+result = await agent.run("List all Python files and get latest commits")
+```
+
+---
+
+## Transport Comparison
+
+| Transport | Use Case | Auth Methods |
+|-----------|----------|-------------|
+| `stdio` | Local MCP servers, CLI tools | None (local process) |
+| `streamable_http` | Remote APIs, cloud services | Bearer token, OAuth 2.0 |
+| `sse` | Real-time data, streaming | Bearer token, custom headers |
+
+<Tip>
+Use MCP when you need to connect to external tools and services. Choose `stdio` for local CLI tools, `streamable_http` for REST APIs, and `sse` for real-time streaming data.
+</Tip>

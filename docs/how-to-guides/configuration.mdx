@@ -1,0 +1,123 @@
+---
+title: Configuration
+description: 'Environment variables, agent settings, and model configuration'
+icon: 'gear'
+---
+
+# Configuration Guide
+
+OmniCoreAgent can be configured through environment variables, Python dictionaries, or specialized configuration objects.
+
+---
+
+## 1. Environment Variables
+
+Environment variables are the best way to manage sensitive data like API keys and connection strings.
+
+### LLM API Keys
+| Provider | Variable |
+|----------|----------|
+| OpenAI | `OPENAI_API_KEY` |
+| Anthropic | `ANTHROPIC_API_KEY` |
+| Google Gemini | `GEMINI_API_KEY` |
+| Groq | `GROQ_API_KEY` |
+
+### Storage Backends
+| Backend | Variable | Example |
+|---------|----------|---------|
+| **Redis** | `REDIS_URL` | `redis://localhost:6379/0` |
+| **SQL Database** | `DATABASE_URL` | `postgresql://user:pass@localhost:5432/db` |
+| **MongoDB** | `MONGODB_URI` | `mongodb://localhost:27017` |
+
+### Observability
+| Service | Variable |
+|---------|----------|
+| **Opik** | `OPIK_API_KEY` |
+| **Opik Project** | `OPIK_PROJECT_NAME` |
+
+---
+
+## 2. Agent Configuration
+
+The `AgentConfig` handles the runtime behavior of the agent, such as reasoning steps and resource limits.
+
+```python
+agent_config = {
+    "tool_call_timeout": 30,         # Max seconds per tool execution
+    "max_steps": 15,                 # Max reasoning loops per run()
+    "request_limit": 1000,           # Max LLM requests per session
+    "total_tokens_limit": 100000,    # Max total tokens per session
+    "enable_agent_skills": True,     # Enable local skill discovery
+    "enable_advanced_tool_use": True # Enable BM25 tool retrieval
+}
+
+agent = OmniCoreAgent(
+    ...
+    agent_config=agent_config
+)
+```
+
+---
+
+## 3. Model Configuration
+
+The `model_config` defines which LLM to use and its sampling parameters.
+
+```python
+model_config = {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "temperature": 0.5,
+    "max_tokens": 4000,
+    "top_p": 0.9,
+    # Custom endpoint for self-hosted models
+    "api_base": "http://localhost:8000/v1" 
+}
+```
+
+---
+
+## 4. MCP Tool Configuration
+
+MCP servers are configured as a list of dictionaries.
+
+```python
+mcp_tools = [
+    {
+        "name": "explorer",
+        "transport_type": "stdio",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+    },
+    {
+        "name": "remote_service",
+        "transport_type": "streamable_http",
+        "url": "https://api.myapp.com/mcp",
+        "headers": {"Authorization": "Bearer token"}
+    }
+]
+```
+
+---
+
+## 5. Persistence Configuration
+
+Pass a `MemoryRouter` or `EventRouter` to customize where history and telemetry are stored.
+
+```python
+from omnicoreagent import MemoryRouter, EventRouter
+
+agent = OmniCoreAgent(
+    ...
+    memory_router=MemoryRouter("redis"),
+    event_router=EventRouter("redis_stream")
+)
+```
+
+---
+
+## Best Practices
+
+- **Use `.env`**: Use a library like `python-dotenv` to load your environment variables during development.
+- **Model Selection**: Use smaller models (`gpt-4o-mini`) while building and testing your agent logic to save costs.
+- **Limit Steps**: Always set a reasonable `max_steps` to prevent the agent from entering infinite reasoning loops in case of tool failures.

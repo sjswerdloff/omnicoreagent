@@ -1,0 +1,81 @@
+---
+title: Agent Skills
+description: 'Self-contained capability packages for specialized agent tasks'
+icon: 'graduation-cap'
+---
+
+# Agent Skills System
+
+OmniCoreAgent supports the **Agent Skills** specification — self-contained capability packages that provide specialized knowledge, executable scripts, and comprehensive documentation for agents.
+
+## What is an Agent Skill?
+
+An agent skill is a directory following a specific structure that packages everything an agent needs to perform specialized tasks. Skills allow you to build portable, reusable capabilities that can be shared across agents and projects.
+
+### Directory Structure
+
+```text
+.agents/skills/my-skill-name/
+├── SKILL.md        # The "Activation" document (instructions + metadata)
+├── scripts/        # Multi-language executable scripts (Python, JS, etc.)
+├── references/     # Deep-dive documentation and research
+└── assets/         # Templates, examples, and other resources
+```
+
+---
+
+## Configuration
+
+Enable skill discovery in the agent configuration:
+
+```python
+agent_config = {
+    "enable_agent_skills": True  # Enable discovery and tools for skills
+}
+
+agent = OmniCoreAgent(
+    ...
+    agent_config=agent_config
+)
+```
+
+---
+
+## How It Works
+
+1. **Discovery**: The agent automatically scans the `.agents/skills/` directory at startup.
+2. **Activation**: The agent is instructed to read the `SKILL.md` file first to understand the skill's capabilities and how to use them.
+3. **Execution**: The agent uses specialized tools to interact with skill files and run scripts.
+
+### Skill-Specific Tools
+
+| Tool | Description |
+|------|-------------|
+| `read_skill_file` | Access any file within a skill (docs, references, etc.). |
+| `run_skill_script` | Execute bundled scripts with automatic interpreter detection. |
+
+---
+
+## Polyglot Script Execution
+
+The `run_skill_script` tool supports multiple languages, allowing you to bridge different ecosystems:
+
+- **Python** (.py)
+- **JavaScript / Node.js** (.js)
+- **TypeScript** (.ts)
+- **Ruby** (.rb)
+- **Bash / Shell** (.sh)
+
+The framework automatically detects the correct interpreter and passes arguments from the agent to your script.
+
+---
+
+## Creating Your Own Skills
+
+To learn how to create your own agent skills and follow the official specification, visit [agentskills.io](https://agentskills.io/).
+
+### Tips for Skill Authors
+
+- **Clear Metadata**: Ensure your `SKILL.md` has a clear "Purpose" and "Usage" section.
+- **Example Driven**: Include examples of successful tool calls or script executions.
+- **Portable Scripts**: Avoid hardcoded paths in your scripts; use the environment and arguments provided by the agent.

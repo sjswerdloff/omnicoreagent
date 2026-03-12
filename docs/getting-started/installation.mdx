@@ -1,0 +1,136 @@
+---
+title: Installation
+description: 'Install OmniCoreAgent and get set up in minutes'
+icon: 'download'
+---
+
+# Installation
+
+## Prerequisites
+
+Before installing OmniCoreAgent, ensure you have the following:
+
+<Info>
+**System Requirements:**
+- **Python 3.10+** (Python 3.11+ recommended)
+- **LLM API key** from any supported provider (OpenAI, Anthropic, Google, etc.)
+- **UV package manager** (recommended) or pip
+</Info>
+
+### Check Python Version
+
+```bash
+python --version
+# Should show Python 3.10.0 or higher
+```
+
+### Install UV (Recommended)
+
+UV is faster than pip and handles dependencies more reliably:
+
+<Tabs>
+  <Tab title="macOS/Linux">
+    ```bash
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ```
+  </Tab>
+  <Tab title="Windows">
+    ```powershell
+    powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+    ```
+  </Tab>
+  <Tab title="Python pip">
+    ```bash
+    pip install uv
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Installation Methods
+
+<Tabs>
+  <Tab title="UV (Recommended)">
+    ```bash
+    uv add omnicoreagent
+    ```
+  </Tab>
+  <Tab title="pip">
+    ```bash
+    pip install omnicoreagent
+    ```
+  </Tab>
+  <Tab title="From Source">
+    For development or latest features:
+    ```bash
+    git clone https://github.com/omnirexflora-labs/omnicoreagent.git
+    cd omnicoreagent
+    uv sync
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Verify Installation
+
+After installation, verify that you can import the package:
+
+```bash
+python -c "import omnicoreagent; print(omnicoreagent.__version__)"
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Python Version Error">
+    **Error**: `OmniCoreAgent requires Python 3.10+`
+
+    **Solution**: Upgrade your Python version:
+    ```bash
+    # Check available Python versions
+    python3.11 --version
+
+    # Use specific Python version with UV
+    uv python install 3.11
+    uv add omnicoreagent
+    ```
+  </Accordion>
+  <Accordion title="Permission Denied">
+    **Error**: Permission denied during installation
+
+    **Solution**: Use user installation:
+    ```bash
+    pip install --user omnicoreagent
+    ```
+  </Accordion>
+  <Accordion title="Getting Help">
+    If you encounter issues:
+
+    1. Search [existing issues](https://github.com/omnirexflora-labs/omnicoreagent/issues)
+    2. Create a [new issue](https://github.com/omnirexflora-labs/omnicoreagent/issues/new) with:
+       - Your operating system
+       - Python version
+       - Installation method used
+       - Complete error message
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Quick Start" icon="bolt" href="/docs/getting-started/quickstart">
+    Build your first agent in under 30 seconds
+  </Card>
+  <Card title="Core Concepts" icon="brain" href="/docs/core-concepts/overview">
+    Learn about memory, events, and tools
+  </Card>
+  <Card title="Configuration" icon="gear" href="/docs/how-to-guides/configuration">
+    Environment variables and agent settings
+  </Card>
+</CardGroup>

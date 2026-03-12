@@ -1,489 +1,302 @@
-# 🚀 MCPOmni Connect - Universal Gateway to MCP Servers
-[![PyPI Downloads](https://static.pepy.tech/badge/mcpomni-connect)](https://pepy.tech/projects/mcpomni-connect)
-[![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](https://github.com/Abiorh001/mcp_omni_connect/actions)
-[![PyPI version](https://badge.fury.io/py/mcpomni-connect.svg)](https://badge.fury.io/py/mcpomni-connect)
-[![Last Commit](https://img.shields.io/github/last-commit/Abiorh001/mcp_omni_connect)](https://github.com/Abiorh001/mcp_omni_connect/commits/main)
-[![Open Issues](https://img.shields.io/github/issues/Abiorh001/mcp_omni_connect)](https://github.com/Abiorh001/mcp_omni_connect/issues)
-[![Pull Requests](https://img.shields.io/github/issues-pr/Abiorh001/mcp_omni_connect)](https://github.com/Abiorh001/mcp_omni_connect/pulls)
-
-MCPOmni Connect is a powerful, universal command-line interface (CLI) that serves as your gateway to the Model Context Protocol (MCP) ecosystem. It seamlessly integrates multiple MCP servers, AI models, and various transport protocols into a unified, intelligent interface.
-
-## ✨ Key Features
-
-### 🔌 Universal Connectivity
-- **Multi-Protocol Support**
-  - Native support for stdio transport
-  - Server-Sent Events (SSE) for real-time communication
-  - Docker container integration
-  - NPX package execution
-  - Extensible transport layer for future protocols
-- **ReAct Agentic Mode**
-  - Autonomous task execution without human intervention
-  - Advanced reasoning and decision-making capabilities
-  - Seamless switching between chat and agentic modes
-  - Self-guided tool selection and execution
-  - Complex task decomposition and handling
-- **Orchestrator Agent Mode**
-  - Advanced planning for complex multi-step tasks
-  - Intelligent task delegation across multiple MCP servers
-  - Dynamic agent coordination and communication
-  - Automated subtask management and execution
-
-### 🧠 AI-Powered Intelligence
-- **Advanced LLM Integration**
-  - Seamless OpenAI models integration
-  - Seamless OpenRouter models integration
-  - Seamless Groq models integration
-  - Seamless Gemini models integration
-  - Seamless DeepSeek models integration
-  - Dynamic system prompts based on available capabilities
-  - Intelligent context management
-  - Automatic tool selection and chaining
-  - Universal model support through custom ReAct Agent
-    - Handles models without native function calling
-    - Dynamic function execution based on user requests
-    - Intelligent tool orchestration
-
-
-### 🔒 Security & Privacy
-- **Explicit User Control**
-  - All tool executions require explicit user approval in chat mode
-  - Clear explanation of tool actions before execution
-  - Transparent disclosure of data access and usage
-- **Data Protection**
-  - Strict data access controls
-  - Server-specific data isolation
-  - No unauthorized data exposure
-- **Privacy-First Approach**
-  - Minimal data collection
-  - User data remains on specified servers
-  - No cross-server data sharing without consent
-- **Secure Communication**
-  - Encrypted transport protocols
-  - Secure API key management
-  - Environment variable protection
-
-### 💾 Memory Management
-- **Redis-Powered Persistence**
-  - Long-term conversation memory storage
-  - Session persistence across restarts
-  - Configurable memory retention
-  - Easy memory toggle with commands
-- **Chat History File Storage**
-  - Save complete chat conversations to files
-  - Load previous conversations from saved files
-  - Continue conversations from where you left off
-  - Persistent chat history across sessions
-  - File-based backup and restoration of conversations
-- **Intelligent Context Management**
-  - Automatic context pruning
-  - Relevant information retrieval
-  - Memory-aware responses
-  - Cross-session context maintenance
-
-### 💬 Prompt Management
-- **Advanced Prompt Handling**
-  - Dynamic prompt discovery across servers
-  - Flexible argument parsing (JSON and key-value formats)
-  - Cross-server prompt coordination
-  - Intelligent prompt validation
-  - Context-aware prompt execution
-  - Real-time prompt responses
-  - Support for complex nested arguments
-  - Automatic type conversion and validation
-- **Client-Side Sampling Support**
-  - Dynamic sampling configuration from client
-  - Flexible LLM response generation
-  - Customizable sampling parameters
-  - Real-time sampling adjustments
-
-### 🛠️ Tool Orchestration
-- **Dynamic Tool Discovery & Management**
-  - Automatic tool capability detection
-  - Cross-server tool coordination
-  - Intelligent tool selection based on context
-  - Real-time tool availability updates
-
-### 📦 Resource Management
-- **Universal Resource Access**
-  - Cross-server resource discovery
-  - Unified resource addressing
-  - Automatic resource type detection
-  - Smart content summarization
-
-### 🔄 Server Management
-- **Advanced Server Handling**
-  - Multiple simultaneous server connections
-  - Automatic server health monitoring
-  - Graceful connection management
-  - Dynamic capability updates
-
-## 🏗️ Architecture
-
-### Core Components
-```
-MCPOmni Connect
-├── Transport Layer
-│   ├── Stdio Transport
-│   ├── SSE Transport
-│   └── Docker Integration
-├── Session Management
-│   ├── Multi-Server Orchestration
-│   └── Connection Lifecycle Management
-├── Tool Management
-│   ├── Dynamic Tool Discovery
-│   ├── Cross-Server Tool Routing
-│   └── Tool Execution Engine
-└── AI Integration
-    ├── LLM Processing
-    ├── Context Management
-    └── Response Generation
-```
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Python 3.10+
-- LLM API key
-- UV package manager (recommended)
-- Redis server (optional, for persistent memory)
-
-### Install using package manager
-```bash
-# with uv recommended
-uv add mcpomni-connect
-# using pip
-pip install mcpomni-connect
-```
-
-### Configuration
-```bash
-# Set up environment variables
-echo "LLM_API_KEY=your_key_here" > .env
-# Optional: Configure Redis connection
-echo "REDIS_HOST=localhost" >> .env
-echo "REDIS_PORT=6379" >> .env
-echo "REDIS_DB=0" >> .env"
-# Configure your servers in servers_config.json
-```
-
-### Start CLI
-```bash
-# start the cli running the command ensure your api key is export or create .env
-mcpomni_connect
-```
-
-## 🧪 Testing
-
-### Running Tests
-```bash
-# Run all tests with verbose output
-pytest tests/ -v
-
-# Run specific test file
-pytest tests/test_specific_file.py -v
-
-# Run tests with coverage report
-pytest tests/ --cov=src --cov-report=term-missing
-```
-
-### Test Structure
-```
-tests/
-├── unit/           # Unit tests for individual components
-```
-
-### Development Quick Start
-
-1. **Installation**
-   ```bash
-   # Clone the repository
-   git clone https://github.com/Abiorh001/mcp_omni_connect.git
-   cd mcp_omni_connect
-
-   # Create and activate virtual environment
-   uv venv
-   source .venv/bin/activate
-
-   # Install dependencies
-   uv sync
-   ```
-
-2. **Configuration**
-   ```bash
-   # Set up environment variables
-   echo "LLM_API_KEY=your_key_here" > .env
-
-   # Configure your servers in servers_config.json
-   ```
-3. ** Start Client**
-   ```bash
-   # Start the client
-   uv run run.py
-   # or
-   python run.py
-   ```
-
-### Server Configuration Examples
-
-```json
-{
-    "LLM": {
-        "provider": "openai",  // Supports: "openai", "openrouter", "groq"
-        "model": "gpt-4",      // Any model from supported providers
-        "temperature": 0.5,
-        "max_tokens": 5000,
-        "max_context_length": 30000, // Maximu of the model context length
-        "top_p": 0
-    },
-    "mcpServers": {
-        "filesystem-server": {
-            "command": "npx",
-            "args": [
-                "@modelcontextprotocol/server-filesystem",
-                "/path/to/files"
-            ]
-        },
-        "sse-server": {
-            "type": "sse",
-            "url": "http://localhost:3000/mcp",
-            "headers": {
-                "Authorization": "Bearer token"
-            },
-        },
-        "docker-server": {
-            "command": "docker",
-            "args": ["run", "-i", "--rm", "mcp/server"]
-        }
-    }
-}
-```
-
-## 🎯 Usage
-
-### Interactive Commands
-- `/tools` - List all available tools across servers
-- `/prompts` - View available prompts
-- `/prompt:<name>/<args>` - Execute a prompt with arguments
-- `/resources` - List available resources
-- `/resource:<uri>` - Access and analyze a resource
-- `/debug` - Toggle debug mode
-- `/refresh` - Update server capabilities
-- `/memory` - Toggle Redis memory persistence (on/off)
-- `/mode:auto` - Switch to autonomous agentic mode
-- `/mode:chat` - Switch back to interactive chat mode
-
-### Memory and Chat History
-```bash
-# Enable Redis memory persistence
-/memory
-
-# Check memory status
-Memory persistence is now ENABLED using Redis
-
-# Disable memory persistence
-/memory
-
-# Check memory status
-Memory persistence is now DISABLED
-```
-
-### Operation Modes
-```bash
-# Switch to autonomous mode
-/mode:auto
-
-# System confirms mode change
-Now operating in AUTONOMOUS mode. I will execute tasks independently.
-
-# Switch back to chat mode
-/mode:chat
-
-# System confirms mode change
-Now operating in CHAT mode. I will ask for approval before executing tasks.
-```
-
-### Mode Differences
-- **Chat Mode (Default)**
-  - Requires explicit approval for tool execution
-  - Interactive conversation style
-  - Step-by-step task execution
-  - Detailed explanations of actions
-
-- **Autonomous Mode**
-  - Independent task execution
-  - Self-guided decision making
-  - Automatic tool selection and chaining
-  - Progress updates and final results
-  - Complex task decomposition
-  - Error handling and recovery
-
-- **Orchestrator Mode**
-  - Advanced planning for complex multi-step tasks
-  - Strategic delegation across multiple MCP servers
-  - Intelligent agent coordination and communication
-  - Parallel task execution when possible
-  - Dynamic resource allocation
-  - Sophisticated workflow management
-  - Real-time progress monitoring across agents
-  - Adaptive task prioritization
-
-### Prompt Management
-```bash
-# List all available prompts
-/prompts
-
-# Basic prompt usage
-/prompt:weather/location=tokyo
-
-# Prompt with multiple arguments depends on the server prompt arguments requirements
-/prompt:travel-planner/from=london/to=paris/date=2024-03-25
-
-# JSON format for complex arguments
-/prompt:analyze-data/{
-    "dataset": "sales_2024",
-    "metrics": ["revenue", "growth"],
-    "filters": {
-        "region": "europe",
-        "period": "q1"
-    }
-}
-
-# Nested argument structures
-/prompt:market-research/target=smartphones/criteria={
-    "price_range": {"min": 500, "max": 1000},
-    "features": ["5G", "wireless-charging"],
-    "markets": ["US", "EU", "Asia"]
-}
-```
-
-### Advanced Prompt Features
-- **Argument Validation**: Automatic type checking and validation
-- **Default Values**: Smart handling of optional arguments
-- **Context Awareness**: Prompts can access previous conversation context
-- **Cross-Server Execution**: Seamless execution across multiple MCP servers
-- **Error Handling**: Graceful handling of invalid arguments with helpful messages
-- **Dynamic Help**: Detailed usage information for each prompt
-
-### AI-Powered Interactions
-The client intelligently:
-- Chains multiple tools together
-- Provides context-aware responses
-- Automatically selects appropriate tools
-- Handles errors gracefully
-- Maintains conversation context
-
-### Model Support
-- **OpenAI Models**
-  - Full support for all OpenAI models
-  - Native function calling for compatible models
-  - ReAct Agent fallback for older models
-- **OpenRouter Models**
-  - Access to all OpenRouter-hosted models
-  - Unified interface for model interaction
-  - Automatic capability detection
-- **Groq Models**
-  - Support for all Groq models
-  - Ultra-fast inference capabilities
-  - Seamless integration with tool system
-- **Universal Model Support**
-  - Custom ReAct Agent for models without function calling
-  - Dynamic tool execution based on model capabilities
-  - Intelligent fallback mechanisms
-
-## 🔧 Advanced Features
-
-### Tool Orchestration
-```python
-# Example of automatic tool chaining if the tool is available in the servers connected
-User: "Find charging stations near Silicon Valley and check their current status"
-
-# Client automatically:
-1. Uses Google Maps API to locate Silicon Valley
-2. Searches for charging stations in the area
-3. Checks station status through EV network API
-4. Formats and presents results
-```
-
-### Resource Analysis
-```python
-# Automatic resource processing
-User: "Analyze the contents of /path/to/document.pdf"
-
-# Client automatically:
-1. Identifies resource type
-2. Extracts content
-3. Processes through LLM
-4. Provides intelligent summary
-```
-### Demo
-![mcp_client_new1-MadewithClipchamp-ezgif com-optimize](https://github.com/user-attachments/assets/9c4eb3df-d0d5-464c-8815-8f7415a47fce)
-
-## 🔍 Troubleshooting
-
-### Common Issues and Solutions
-
-1. **Connection Issues**
-   ```bash
-   Error: Could not connect to MCP server
-   ```
-   - Check if the server is running
-   - Verify server configuration in `servers_config.json`
-   - Ensure network connectivity
-   - Check server logs for errors
-
-2. **API Key Issues**
-   ```bash
-   Error: Invalid API key
-   ```
-   - Verify API key is correctly set in `.env`
-   - Check if API key has required permissions
-   - Ensure API key is for correct environment (production/development)
-
-3. **Redis Connection**
-   ```bash
-   Error: Could not connect to Redis
-   ```
-   - Verify Redis server is running
-   - Check Redis connection settings in `.env`
-   - Ensure Redis password is correct (if configured)
-
-4. **Tool Execution Failures**
-   ```bash
-   Error: Tool execution failed
-   ```
-   - Check tool availability on connected servers
-   - Verify tool permissions
-   - Review tool arguments for correctness
-
-### Debug Mode
-
-Enable debug mode for detailed logging:
-```bash
-/debug
-```
-
-For additional support, please:
-1. Check the [Issues](https://github.com/Abiorh001/mcp_omni_connect/issues) page
-2. Review closed issues for similar problems
-3. Open a new issue with detailed information if needed
-
-## 🤝 Contributing
-
-We welcome contributions! See our [Contributing Guide](CONTRIBUTING.md) for details.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 📬 Contact & Support
-
-- **Author**: Abiola Adeshina
-- **Email**: abioladedayo1993@gmail.com
-- **GitHub Issues**: [Report a bug](https://github.com/Abiorh001/mcp_omni_connect/issues)
+<p align="center">
+  <img src="assets/IMG_5292.jpeg" alt="OmniCoreAgent Logo" width="250"/>
+</p>
+
+<h1 align="center">🚀 OmniCoreAgent</h1>
+
+<p align="center">
+  <strong>The AI Agent Framework Built for Production</strong><br>
+  <em>Switch memory backends at runtime. Manage context automatically. Deploy with confidence.</em>
+</p>
+
+<p align="center">
+  <a href="https://pepy.tech/projects/omnicoreagent"><img src="https://static.pepy.tech/badge/omnicoreagent" alt="PyPI Downloads"></a>
+  <a href="https://badge.fury.io/py/omnicoreagent"><img src="https://badge.fury.io/py/omnicoreagent.svg" alt="PyPI version"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python Version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"></a>
+</p>
+
+<p align="center">
+  <a href="#-quick-start">Quick Start</a> •
+  <a href="#-see-it-in-action">See It In Action</a> •
+  <a href="./cookbook">📚 Cookbook</a> •
+  <a href="#-core-features">Features</a> •
+  <a href="https://docs-omnicoreagent.omnirexfloralabs.com/docs">Docs</a>
+</p>
 
 ---
 
-<p align="center">Built with ❤️ by the MCPOmni Connect Team</p>
+## 🎬 See It In Action
+
+```python
+import asyncio
+from omnicoreagent import OmniCoreAgent, MemoryRouter, ToolRegistry
+
+# Create tools in seconds
+tools = ToolRegistry()
+
+@tools.register_tool("get_weather")
+def get_weather(city: str) -> dict:
+    """Get current weather for a city."""
+    return {"city": city, "temp": "22°C", "condition": "Sunny"}
+
+# Build a production-ready agent
+agent = OmniCoreAgent(
+    name="assistant",
+    system_instruction="You are a helpful assistant with access to weather data.",
+    model_config={"provider": "openai", "model": "gpt-4o"},
+    local_tools=tools,
+    memory_router=MemoryRouter("redis"),  # Start with Redis
+    agent_config={
+        "context_management": {"enabled": True},  # Auto-manage long conversations
+        "guardrail_config": {"strict_mode": True},  # Block prompt injections
+    }
+)
+
+async def main():
+    # Run the agent
+    result = await agent.run("What's the weather in Tokyo?")
+    print(result["response"])
+    
+    # Switch to MongoDB at runtime — no restart needed
+    await agent.switch_memory_store("mongodb")
+    
+    # Keep running with a different backend
+    result = await agent.run("How about Paris?")
+    print(result["response"])
+
+asyncio.run(main())
+```
+
+**What just happened?**
+- ✅ Registered a custom tool with type hints
+- ✅ Built an agent with memory persistence
+- ✅ Enabled automatic context management
+- ✅ Switched from Redis to MongoDB *while running*
+
+---
+
+## ⚡ Quick Start
+
+```bash
+pip install omnicoreagent
+```
+
+```bash
+echo "LLM_API_KEY=your_api_key" > .env
+```
+
+```python
+from omnicoreagent import OmniCoreAgent
+
+agent = OmniCoreAgent(
+    name="my_agent",
+    system_instruction="You are a helpful assistant.",
+    model_config={"provider": "openai", "model": "gpt-4o"}
+)
+
+result = await agent.run("Hello!")
+print(result["response"])
+```
+
+**That's it.** You have an AI agent with session management, memory, and error handling.
+
+> 📚 **Want to learn more?** Check out the [Cookbook](./cookbook) — progressive examples from "Hello World" to production deployments.
+
+---
+
+## 🎯 What Makes OmniCoreAgent Different?
+
+| Feature | What It Means For You |
+|---------|----------------------|
+| **Runtime Backend Switching** | Switch Redis ↔ MongoDB ↔ PostgreSQL without restarting |
+| **Cloud Workspace Storage** | Agent files persist in AWS S3 or Cloudflare R2 ⚡ NEW |
+| **Context Engineering** | Session memory + agent loop context + tool offloading = no token exhaustion |
+| **Tool Response Offloading** | Large tool outputs saved to files, 98% token savings |
+| **Built-in Guardrails** | Prompt injection protection out of the box |
+| **MCP Native** | Connect to any MCP server (stdio, SSE, HTTP with OAuth) |
+| **Background Agents** | Schedule autonomous tasks that run on intervals |
+| **Workflow Orchestration** | Sequential, Parallel, and Router agents for complex tasks |
+| **Production Observability** | Metrics, tracing, and event streaming built in |
+
+---
+
+## 🎯 Core Features
+
+> 📖 **Full documentation**: [docs-omnicoreagent.omnirexfloralabs.com/docs](https://docs-omnicoreagent.omnirexfloralabs.com/docs)
+
+| # | Feature | Description | Docs |
+|---|---------|-------------|------|
+| 1 | **OmniCoreAgent** | The heart of the framework — production agent with all features | [Overview →](https://docs-omnicoreagent.omnirexfloralabs.com/docs/core-concepts/overview) |
+| 2 | **Multi-Tier Memory** | 5 backends (Redis, MongoDB, PostgreSQL, SQLite, in-memory) with runtime switching | [Memory →](https://docs-omnicoreagent.omnirexfloralabs.com/docs/core-concepts/memory) |
+| 3 | **Context Engineering** | Dual-layer system: agent loop context management + tool response offloading | [Context →](https://docs-omnicoreagent.omnirexfloralabs.com/docs/core-concepts/context-engineering) |
+| 4 | **Event System** | Real-time event streaming with runtime switching | [Events →](https://docs-omnicoreagent.omnirexfloralabs.com/docs/core-concepts/events) |
+| 5 | **MCP Client** | Connect to any MCP server (stdio, streamable_http, SSE) with OAuth | [MCP →](https://docs-omnicoreagent.omnirexfloralabs.com/docs/core-concepts/mcp) |
+| 6 | **DeepAgent** | Multi-agent orchestration with automatic task decomposition | [DeepAgent →](https://docs-omnicoreagent.omnirexfloralabs.com/docs/core-concepts/deep-agent) |
+| 7 | **Local Tools** | Register any Python function as an AI tool via ToolRegistry | [Local Tools →](https://docs-omnicoreagent.omnirexfloralabs.com/docs/core-concepts/local-tools) |
+| 8 | **Community Tools** | 100+ pre-built tools (search, AI, comms, databases, DevOps, finance) | [Community Tools →](https://docs-omnicoreagent.omnirexfloralabs.com/docs/core-concepts/community-tools) |
+| 9 | **Agent Skills** | Polyglot packaged capabilities (Python, Bash, Node.js) | [Skills →](https://docs-omnicoreagent.omnirexfloralabs.com/docs/core-concepts/skills) |
+| 10 | **Workspace Memory** | Persistent file storage with S3/R2/Local backends | [Workspace →](https://docs-omnicoreagent.omnirexfloralabs.com/docs/core-concepts/workspace-memory) |
+| 11 | **Sub-Agents** | Delegate tasks to specialized agents | [Sub-Agents →](https://docs-omnicoreagent.omnirexfloralabs.com/docs/core-concepts/sub-agents) |
+| 12 | **Background Agents** | Schedule autonomous tasks on intervals | [Background →](https://docs-omnicoreagent.omnirexfloralabs.com/docs/core-concepts/background-agents) |
+| 13 | **Workflows** | Sequential, Parallel, and Router agent orchestration | [Workflows →](https://docs-omnicoreagent.omnirexfloralabs.com/docs/core-concepts/workflows) |
+| 14 | **BM25 Tool Retrieval** | Auto-discover relevant tools from 1000+ using BM25 search | [Advanced Tools →](https://docs-omnicoreagent.omnirexfloralabs.com/docs/how-to-guides/advanced-tools) |
+| 15 | **Guardrails** | Prompt injection protection with configurable sensitivity | [Guardrails →](https://docs-omnicoreagent.omnirexfloralabs.com/docs/core-concepts/guardrails) |
+| 16 | **Observability** | Per-request metrics + Opik distributed tracing | [Observability →](https://docs-omnicoreagent.omnirexfloralabs.com/docs/how-to-guides/observability) |
+| 17 | **Universal Models** | 9 providers via LiteLLM (OpenAI, Anthropic, Gemini, Groq, Ollama, etc.) | [Models →](https://docs-omnicoreagent.omnirexfloralabs.com/docs/how-to-guides/models) |
+| 18 | **OmniServe** | Turn any agent into a production REST/SSE API with one command | [OmniServe →](https://docs-omnicoreagent.omnirexfloralabs.com/docs/how-to-guides/omniserve) |
+
+---
+
+## 📚 Examples & Cookbook
+
+All examples are in the **[Cookbook](./cookbook)** — organized by use case with progressive learning paths.
+
+| Category | What You'll Build | Location |
+|----------|-------------------|----------|
+| **Getting Started** | Your first agent, tools, memory, events | [cookbook/getting_started](./cookbook/getting_started) |
+| **Workflows** | Sequential, Parallel, Router agents | [cookbook/workflows](./cookbook/workflows) |
+| **Background Agents** | Scheduled autonomous tasks | [cookbook/background_agents](./cookbook/background_agents) |
+| **Production** | Metrics, guardrails, observability | [cookbook/production](./cookbook/production) |
+| **🏆 Showcase** | Full production applications | [cookbook/showcase](./cookbook/showcase) |
+
+### 🏆 Showcase: Full Production Applications
+
+| Application | Description | Features |
+|-------------|-------------|----------|
+| **[OmniAudit](./cookbook/showcase/omniavelis)** | Healthcare Claims Audit System | Multi-agent pipeline, ERISA compliance |
+| **[DevOps Copilot](./cookbook/showcase/devops_copilot_agent)** | AI-Powered DevOps Automation | Docker, Prometheus, Grafana |
+| **[Deep Code Agent](./cookbook/showcase/deep_code_agent)** | Code Analysis with Sandbox | Sandbox execution, session management |
+
+---
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+```bash
+# Required
+LLM_API_KEY=your_api_key
+
+# Optional: Memory backends
+REDIS_URL=redis://localhost:6379/0
+DATABASE_URL=postgresql://user:pass@localhost:5432/db
+MONGODB_URI=mongodb://localhost:27017/omnicoreagent
+
+# Optional: Observability
+OPIK_API_KEY=your_opik_key
+OPIK_WORKSPACE=your_workspace
+```
+
+### Agent Configuration
+
+```python
+agent_config = {
+    "max_steps": 15,                    # Max reasoning steps
+    "tool_call_timeout": 30,            # Tool timeout (seconds)
+    "request_limit": 0,                 # 0 = unlimited
+    "total_tokens_limit": 0,            # 0 = unlimited
+    "memory_config": {"mode": "sliding_window", "value": 10000},
+    "enable_advanced_tool_use": True,   # BM25 tool retrieval
+    "enable_agent_skills": True,        # Specialized packaged skills
+    "memory_tool_backend": "local"      # Persistent working memory
+}
+```
+
+> 📖 **Full configuration reference**: [Configuration Guide →](https://docs-omnicoreagent.omnirexfloralabs.com/docs/how-to-guides/configuration)
+
+---
+
+## 🧪 Testing & Development
+
+```bash
+# Clone
+git clone https://github.com/omnirexflora-labs/omnicoreagent.git
+cd omnicoreagent
+
+# Setup
+uv venv && source .venv/bin/activate
+uv sync --dev
+
+# Test
+pytest tests/ -v
+pytest tests/ --cov=src --cov-report=term-missing
+```
+
+---
+
+## 🔍 Troubleshooting
+
+| Error | Fix |
+|-------|-----|
+| `Invalid API key` | Check `.env`: `LLM_API_KEY=your_key` |
+| `ModuleNotFoundError` | `pip install omnicoreagent` |
+| `Redis connection failed` | Start Redis or use `MemoryRouter("in_memory")` |
+| `MCP connection refused` | Ensure MCP server is running |
+
+> 📖 **More troubleshooting**: [Basic Usage Guide →](https://docs-omnicoreagent.omnirexfloralabs.com/docs/how-to-guides/basic-usage)
+
+---
+
+## 📝 Changelog
+
+See the full [Changelog →](https://docs-omnicoreagent.omnirexfloralabs.com/docs/changelog) for version history.
+
+---
+
+## 🤝 Contributing
+
+```bash
+# Fork & clone
+git clone https://github.com/omnirexflora-labs/omnicoreagent.git
+
+# Setup
+uv venv && source .venv/bin/activate
+uv sync --dev
+pre-commit install
+
+# Submit PR
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
+
+## 📄 License
+
+MIT License — see [LICENSE](LICENSE)
+
+---
+
+## 👨‍💻 Author & Credits
+
+**Created by [Abiola Adeshina](https://github.com/Abiorh001)**
+
+- **GitHub**: [@Abiorh001](https://github.com/Abiorh001)
+- **X (Twitter)**: [@abiorhmangana](https://x.com/abiorhmangana)
+- **Email**: abiolaadedayo1993@gmail.com
+
+### 🌟 The OmniRexFlora Ecosystem
+
+| Project | Description |
+|---------|-------------|
+| [🧠 OmniMemory](https://github.com/omnirexflora-labs/omnimemory) | Self-evolving memory for autonomous agents |
+| [🤖 OmniCoreAgent](https://github.com/omnirexflora-labs/omnicoreagent) | Production-ready AI agent framework (this project) |
+| [⚡ OmniDaemon](https://github.com/omnirexflora-labs/OmniDaemon) | Event-driven runtime engine for AI agents |
+
+### 🙏 Acknowledgments
+
+Built on: [LiteLLM](https://github.com/BerriAI/litellm), [FastAPI](https://fastapi.tiangolo.com/), [Redis](https://redis.io/), [Opik](https://opik.ai/), [Pydantic](https://pydantic-docs.helpmanual.io/), [APScheduler](https://apscheduler.readthedocs.io/)
+
+---
+
+<p align="center">
+  <strong>Building the future of production-ready AI agent frameworks</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/omnirexflora-labs/omnicoreagent">⭐ Star us on GitHub</a> •
+  <a href="https://github.com/omnirexflora-labs/omnicoreagent/issues">🐛 Report Bug</a> •
+  <a href="https://github.com/omnirexflora-labs/omnicoreagent/issues">💡 Request Feature</a> •
+  <a href="https://docs-omnicoreagent.omnirexfloralabs.com/docs">📖 Documentation</a>
+</p>

@@ -1,0 +1,113 @@
+# OmniCoreAgent Documentation
+
+## 🚀 Quick Start
+
+### Run Development Server
+
+```bash
+# Install Mintlify CLI
+npm i -g mintlify
+
+# Start preview
+cd docs && mintlify dev
+```
+
+## 📁 Documentation Structure
+
+```
+docs/
+├── index.mdx                    # Homepage
+├── getting-started/
+│   ├── installation.mdx
+│   └── quickstart.mdx
+├── core-concepts/
+│   ├── overview.mdx
+│   ├── architecture.mdx
+│   ├── memory.mdx
+│   ├── context-engineering.mdx
+│   ├── events.mdx
+│   ├── mcp.mdx
+│   ├── local-tools.mdx
+│   ├── community-tools.mdx
+│   ├── skills.mdx
+│   ├── workspace-memory.mdx
+│   ├── guardrails.mdx
+│   ├── sub-agents.mdx
+│   ├── background-agents.mdx
+│   ├── deep-agent.mdx
+│   └── workflows.mdx
+├── how-to-guides/
+│   ├── configuration.mdx
+│   ├── advanced-tools.mdx
+│   ├── observability.mdx
+│   ├── models.mdx
+│   └── omniserve.mdx
+├── changelog.mdx
+└── README.mdx                   # This file
+```
+
+## ✨ Mintlify Components
+
+Use Mintlify components (not MkDocs syntax):
+
+```mdx
+<Tip title="Helpful Tip">
+This is a helpful tip for users.
+</Tip>
+
+<Warning title="Important Warning">
+This is something users should be careful about.
+</Warning>
+
+<Info title="Note">
+Background context or helpful details.
+</Info>
+```
+
+### Tabs
+
+```mdx
+<Tabs>
+  <Tab title="Option A">
+    Content for option A
+  </Tab>
+  <Tab title="Option B">
+    Content for option B
+  </Tab>
+</Tabs>
+```
+
+### Cards
+
+```mdx
+<CardGroup cols={2}>
+  <Card title="Feature" icon="bolt" href="/path">
+    Description
+  </Card>
+</CardGroup>
+```
+
+## 📝 Writing Guidelines
+
+- Use clear, concise language
+- Include practical Python examples (not CLI)
+- Add code snippets where helpful
+- Use proper heading hierarchy (H1 → H2 → H3)
+- Every page must have frontmatter (`title`, `description`, `icon`)
+
+## 🔄 Deployment
+
+Mintlify automatically deploys when you push to `main`:
+
+```bash
+git push origin main
+```
+
+## 📚 Resources
+
+- **Mintlify Docs**: [mintlify.com/docs](https://mintlify.com/docs)
+- **Component Reference**: [mintlify.com/docs/content/components](https://mintlify.com/docs/content/components)
+
+---
+
+**Questions?** Open an issue or start a discussion on GitHub!

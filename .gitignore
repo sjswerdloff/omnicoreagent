@@ -12,4 +12,22 @@ wheels/
 servers_config.json
 *.log
 *.log.*
-./qdrant_data/
+*.db
+# MkDocs
+site/
+*.db
+venv/
+
+# ── Workspace (all agent runtime data) ──
+workspace/
+
+# Legacy (kept for safety during migration)
+memories/
+.omnicoreagent_config/*
+.omnicoreagent_artifacts/*
+
+.agents/skills/*
+omnistudio/web/node_modules/*
+omnicoreagent-video/*
+.gemini/*
+

@@ -1,0 +1,62 @@
+---
+title: Observability
+description: 'Production metrics, Opik tracing, and per-request performance monitoring'
+icon: 'chart-line'
+---
+
+# Production Observability & Metrics
+
+Monitor your agents with built-in metrics and distributed tracing.
+
+---
+
+## Real-time Usage Metrics
+
+OmniCoreAgent tracks every token, request, and millisecond. Each `run()` returns a `metric` object, and you can get cumulative stats anytime.
+
+```python
+result = await agent.run("Analyze this data")
+print(f"Request Tokens: {result['metric'].request_tokens}")
+print(f"Time Taken: {result['metric'].total_time:.2f}s")
+
+# Get aggregated metrics for the agent's lifecycle
+stats = await agent.get_metrics()
+print(f"Avg Response Time: {stats['average_time']:.2f}s")
+```
+
+---
+
+## Opik Tracing
+
+Monitor and optimize your agents with deep traces using [Opik](https://opik.ai/).
+
+### Setup
+
+```bash
+# Add to .env
+OPIK_API_KEY=your_opik_api_key
+OPIK_WORKSPACE=your_workspace
+```
+
+### What's Tracked
+
+- LLM call performance
+- Tool execution traces
+- Memory operations
+- Agent workflow
+- Bottleneck identification
+
+### Example Trace
+
+```
+Agent Execution Trace:
+├── agent_execution: 4.6s
+    ├── tools_registry_retrieval: 0.02s ✅
+    ├── memory_retrieval_step: 0.08s ✅
+    ├── llm_call: 4.5s ⚠️ (bottleneck!)
+    └── action_execution: 0.03s ✅
+```
+
+<Tip>
+Essential for production. Use Metrics for cost/performance monitoring, and Opik for identifying bottlenecks and debugging complex agent logic.
+</Tip>

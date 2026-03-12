@@ -1,6 +1,8 @@
-import pytest
-from mcpomni_connect.tools import list_tools
 from unittest.mock import AsyncMock
+
+import pytest
+
+from omnicoreagent.mcp_clients_connection.tools import list_tools
 
 # Mock data for testing
 MOCK_TOOLS = {

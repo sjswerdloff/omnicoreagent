@@ -2,6 +2,123 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.18] - 2025-06-19
+
+### Changed
+- **BREAKING CHANGE**: Removed local ChromaDB support for performance optimization
+  - Local ChromaDB fallback system has been completely removed
+  - Users must now explicitly configure a vector database provider
+  - No more automatic fallback to local storage
+  - This eliminates the 81+ second startup delay from ChromaDB Rust bindings
+- **Performance Improvement**: Vector database modules now load only when explicitly needed
+  - Lazy loading prevents unnecessary imports during package initialization
+  - Faster startup when vector DB is disabled
+  - Better resource management
+
+### Added
+- **Required Configuration**: Users must set `OMNI_MEMORY_PROVIDER` to one of:
+  - `qdrant-remote` (recommended default)
+  - `chroma-remote` 
+  - `chroma-cloud`
+- **Clear Error Messages**: Better feedback when vector DB configuration is missing
+
+### Removed
+- Local ChromaDB persistence and warmup system
+- Automatic fallback mechanisms
+- Module-level vector DB initialization
+- ChromaDB local client type
+
+### Migration Guide
+- **Before**: `ENABLE_VECTOR_DB=true` would automatically use local ChromaDB
+- **After**: Must set both `ENABLE_VECTOR_DB=true` AND `OMNI_MEMORY_PROVIDER=qdrant-remote` (or other provider)
+- **Impact**: Faster startup, but requires explicit configuration
+
+## [0.1.17] - 2025-05-28
+
+### Added
+- OAuth Authentication Support:
+  - Added OAuth 2.0 authentication flow for MCP servers
+  - Support for multiple authentication methods:
+    - OAuth 2.0
+    - Bearer token
+    - Custom headers
+  - Flexible authentication configuration in server settings
+  - Secure credential management
+- Enhanced Server Configuration:
+  - Updated server configuration format to support OAuth
+  - Added authentication method specification
+  - Improved server connection security
+  - Better error handling for authentication failures
+
+### Changed
+- Updated server configuration examples to include OAuth support
+- Enhanced documentation for authentication methods
+- Improved security section in README
+- Updated server management commands documentation
+
+### Fixed
+- Improved authentication error handling
+- Enhanced security documentation
+- Updated configuration validation for authentication methods
+
+## [0.1.16] - 2025-05-16
+
+### Added
+- New Streamable HTTP Transport:
+  - Added support for streamable HTTP transport protocol
+  - Efficient data streaming capabilities
+  - Configurable timeout and read timeout settings
+  - Header support for authentication and custom configurations
+- Dynamic Server Management:
+  - New `/add_servers:<config.json>` command to add one or more servers
+  - New `/remove_server:<server_name>` command to remove servers
+  - Support for adding multiple servers from a single configuration file
+  - Real-time server capability updates after adding/removing servers
+- Enhanced Server Configuration:
+  - Added streamable HTTP server configuration examples
+  - Updated documentation for new transport type
+  - Improved server management commands documentation
+
+### Changed
+- Updated README with new server management commands
+- Enhanced server configuration examples to include streamable HTTP
+- Improved documentation for transport protocols
+- Updated interactive commands section with new server management features
+
+### Fixed
+- Improved server connection handling
+- Enhanced error messages for server management commands
+- Updated documentation formatting for consistency
+
+## [0.1.15] - 2025-05-05
+
+### Added
+- Token & Usage Management:
+  - `/api_stats` command to view total tokens used, total requests, response tokens, and number of requests
+  - Ability to set limits for total requests and total token usage; agent will automatically stop when limits are reached
+  - Configurable tool call timeout and max steps; agent will terminate if these thresholds are exceeded
+- Developer Integration Enhancements:
+  - Expanded documentation and examples for using MCPOmni Connect as a backend Python library
+  - FastAPI example for building custom API servers with support for both ReAct Agent and Orchestrator Agent modes
+  - Minimal code snippets for custom MCP client integration in Python projects
+- FastAPI API Documentation:
+  - Documented `/chat/agent_chat` endpoint with request/response examples
+  - Added web client usage instructions for `examples/index.html`
+- Environment Variables Reference:
+  - Added table of supported environment variables and their descriptions in the README
+- Typos and Documentation Improvements:
+  - Fixed typos and improved clarity throughout the README
+  - Clarified configuration options and usage instructions
+
+### Changed
+- Updated server configuration examples to clarify usage of `tool_call_timeout`, `max_steps`, `request_limit`, and `total_tokens_limit`
+- Improved README structure with new "Examples", "Developer Integration", "Token & Usage Management", and "FastAPI API Endpoints" sections
+- Enhanced error handling and documentation for agent termination on reaching usage limits
+
+### Fixed
+- Corrected typos in documentation and configuration comments
+- Improved consistency in code examples and documentation formatting
+
 ## [0.1.14] - 2025-04-18
 
 ### Added
@@ -139,4 +256,4 @@ All notable changes to this project will be documented in this file.
 - Initial release
 - Basic MCP server integration
 - OpenAI model support
-- Core CLI functionality 
+- Core CLI functionality

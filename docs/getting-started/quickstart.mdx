@@ -1,0 +1,113 @@
+---
+title: Quick Start
+description: 'Build your first AI agent in under 30 seconds'
+icon: 'bolt'
+---
+
+# Quick Start
+
+Get your first AI agent running in under 30 seconds with OmniCoreAgent.
+
+<Steps>
+  <Step title="Set API Key">
+    Create a `.env` file in your project directory:
+
+    ```bash
+    echo "LLM_API_KEY=your_openai_api_key_here" > .env
+    ```
+
+    <Tip>
+    You can use keys from OpenAI, Anthropic, Google Gemini, Groq, DeepSeek, and more. See [Universal Model Support](/docs/how-to-guides/models).
+    </Tip>
+  </Step>
+
+  <Step title="Create Your First Agent">
+    Create a file named `hello_agent.py`:
+
+    ```python
+    import asyncio
+    from omnicoreagent import OmniCoreAgent
+
+    async def main():
+        # 1. Initialize the agent
+        agent = OmniCoreAgent(
+            name="my_agent",
+            system_instruction="You are a helpful assistant.",
+            model_config={"provider": "openai", "model": "gpt-4o"}
+        )
+
+        # 2. Run a task
+        result = await agent.run("Hello, what can you do?")
+        print(f"Agent Response: {result['response']}")
+
+        # 3. Cleanup
+        await agent.cleanup()
+
+    if __name__ == "__main__":
+        asyncio.run(main())
+    ```
+  </Step>
+
+  <Step title="Run It">
+    ```bash
+    python hello_agent.py
+    ```
+
+    **✅ That's it!** You just built an AI agent with session management, memory persistence, and error handling.
+  </Step>
+</Steps>
+
+---
+
+## Adding Tools (MCP)
+
+OmniCoreAgent can connect to any MCP-compatible service. Here's how to add a filesystem tool:
+
+```python
+agent = OmniCoreAgent(
+    name="fs_agent",
+    system_instruction="You can manage files.",
+    model_config={"provider": "openai", "model": "gpt-4o"},
+    mcp_tools=[
+        {
+            "name": "filesystem",
+            "transport_type": "stdio",
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+        }
+    ]
+)
+
+await agent.connect_mcp_servers()
+result = await agent.run("List files in /tmp")
+```
+
+---
+
+## Persistence with Session IDs
+
+Agents remember context when you provide a `session_id`:
+
+```python
+# Session 1
+result1 = await agent.run("My name is Abiola.", session_id="user_123")
+
+# Session 2 (Agent remembers the name)
+result2 = await agent.run("What is my name?", session_id="user_123")
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Core Concepts" icon="brain" href="/docs/core-concepts/overview">
+    Deep dive into memory, events, and the agent API
+  </Card>
+  <Card title="Agent Types" icon="users" href="/docs/core-concepts/sub-agents">
+    Build workflows and background agents
+  </Card>
+  <Card title="Advanced Tools" icon="wand-magic-sparkles" href="/docs/how-to-guides/advanced-tools">
+    Scale to 1000+ tools with BM25 retrieval
+  </Card>
+</CardGroup>
